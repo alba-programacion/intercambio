@@ -20,7 +20,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchMetrics = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/metrics');
+        const res = await fetch('https://paleturquoise-stork-428174.hostingersite.com/api/metrics');
         const data = await res.json();
         // Defensive: preserve structure if backend is missing fields or returning an error
         setMetrics(prev => ({

@@ -29,7 +29,7 @@ const Vacantes = () => {
 
   const fetchVacancies = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/vacancies');
+      const res = await fetch('https://paleturquoise-stork-428174.hostingersite.com/api/vacancies');
       const data = await res.json();
       setVacancies(data);
     } catch (e) {
@@ -41,7 +41,7 @@ const Vacantes = () => {
 
   const fetchAllCvs = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/cvs');
+      const res = await fetch('https://paleturquoise-stork-428174.hostingersite.com/api/cvs');
       const data = await res.json();
       const normalizedData = data.map(c => ({
         ...c,
@@ -55,7 +55,7 @@ const Vacantes = () => {
 
   const fetchInstitutions = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/institutions');
+      const res = await fetch('https://paleturquoise-stork-428174.hostingersite.com/api/institutions');
       const data = await res.json();
       setInstitutions(data);
     } catch (e) {
@@ -81,7 +81,7 @@ const Vacantes = () => {
     }
 
     try {
-      const res = await fetch('http://localhost:5000/api/vacancies', {
+      const res = await fetch('https://paleturquoise-stork-428174.hostingersite.com/api/vacancies', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, institutionId: user?.institutionId })
@@ -112,7 +112,7 @@ const Vacantes = () => {
     formData.append('document', documentFile);
 
     try {
-      const res = await fetch('http://localhost:5000/api/cvs/vacancy', {
+      const res = await fetch('https://paleturquoise-stork-428174.hostingersite.com/api/cvs/vacancy', {
         method: 'POST',
         body: formData
       });
@@ -140,7 +140,7 @@ const Vacantes = () => {
     }
 
     try {
-      const res = await fetch(`http://localhost:5000/api/cvs/${cvId}/status`, {
+      const res = await fetch(`https://paleturquoise-stork-428174.hostingersite.com/api/cvs/${cvId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus, rejectedReason, rejectedBy })
@@ -156,7 +156,7 @@ const Vacantes = () => {
 
   const handleUpdateVacancyStatus = async (vacancyId, newStatus) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/vacancies/${vacancyId}/status`, {
+      const res = await fetch(`https://paleturquoise-stork-428174.hostingersite.com/api/vacancies/${vacancyId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
@@ -172,7 +172,7 @@ const Vacantes = () => {
   const handleDeleteVacancy = async (vacancyId) => {
     if (!window.confirm("¿Estás seguro de que deseas eliminar esta vacante de forma permanente?")) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/vacancies/${vacancyId}`, { method: 'DELETE' });
+      const res = await fetch(`https://paleturquoise-stork-428174.hostingersite.com/api/vacancies/${vacancyId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Error al eliminar');
       fetchVacancies();
       if (selectedVacancy && selectedVacancy.id === vacancyId) setSelectedVacancy(null);
@@ -185,7 +185,7 @@ const Vacantes = () => {
     if (!requestCvForm.targetInstitutionId) return setError('Selecciona una institución válida.');
 
     try {
-      const res = await fetch('http://localhost:5000/api/tasks/request-cv', {
+      const res = await fetch('https://paleturquoise-stork-428174.hostingersite.com/api/tasks/request-cv', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -505,7 +505,7 @@ const Vacantes = () => {
                                     <option value="Contratado">Contratado</option>
                                   </select>
                                 </div>
-                                <a href={`http://localhost:5000/uploads/${cv.document}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-blue-600 text-sm font-semibold hover:underline">
+                                <a href={`https://paleturquoise-stork-428174.hostingersite.com/uploads/${cv.document}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-blue-600 text-sm font-semibold hover:underline">
                                   <FileText className="w-4 h-4"/> Ver CV
                                 </a>
                               </div>
@@ -544,7 +544,7 @@ const Vacantes = () => {
                                 <span className="text-slate-400">Publicado: {new Date(cv.createdAt).toLocaleDateString()}</span>
                               </div>
                             </div>
-                            <a href={`http://localhost:5000/uploads/${cv.document}`} target="_blank" rel="noopener noreferrer" className="bg-indigo-50 text-indigo-700 p-2 rounded-lg hover:bg-indigo-100 transition-colors ring-1 ring-inset ring-indigo-200">
+                            <a href={`https://paleturquoise-stork-428174.hostingersite.com/uploads/${cv.document}`} target="_blank" rel="noopener noreferrer" className="bg-indigo-50 text-indigo-700 p-2 rounded-lg hover:bg-indigo-100 transition-colors ring-1 ring-inset ring-indigo-200">
                               <FileText className="w-5 h-5"/>
                             </a>
                           </div>

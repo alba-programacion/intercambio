@@ -22,7 +22,7 @@ const Tareas = () => {
 
   const fetchTasks = async () => {
     try {
-      const res = await fetch(`http://localhost:5000/api/tasks?email=${user.email}`);
+      const res = await fetch(`https://paleturquoise-stork-428174.hostingersite.com/api/tasks?email=${user.email}`);
       const data = await res.json();
       setTasks(data);
     } catch(e) { console.error(e) }
@@ -32,7 +32,7 @@ const Tareas = () => {
   useEffect(() => {
     if (user) {
       fetchTasks();
-      fetch('http://localhost:5000/api/vacancies')
+      fetch('https://paleturquoise-stork-428174.hostingersite.com/api/vacancies')
         .then(res => res.json())
         .then(data => {
            setMyVacancies(data.filter(v => v.institutionId === user.institutionId && v.status !== 'Cerrada'));
@@ -56,7 +56,7 @@ const Tareas = () => {
         const actualReason = selectedVacancyId === 'NO_VACANCY' ? 'No hay vacante para este perfil' : '';
         
         // 1. Update CV Status
-        const resCv = await fetch(`http://localhost:5000/api/cvs/${selectedTask.cvId._id}/status`, {
+        const resCv = await fetch(`https://paleturquoise-stork-428174.hostingersite.com/api/cvs/${selectedTask.cvId._id}/status`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: actualOutcome, rejectedReason: actualReason, rejectedBy: user.email, targetVacancyId: actualOutcome === 'Aprobado' ? selectedVacancyId : null })
@@ -65,7 +65,7 @@ const Tareas = () => {
       }
       
       // 2. Complete Task
-      const resTask = await fetch(`http://localhost:5000/api/tasks/${selectedTask.id}/complete`, {
+      const resTask = await fetch(`https://paleturquoise-stork-428174.hostingersite.com/api/tasks/${selectedTask.id}/complete`, {
         method: 'PATCH'
       });
       if(!resTask.ok) throw new Error('Error al completar la tarea');
@@ -89,7 +89,7 @@ const Tareas = () => {
     formData.append('document', documentFile);
 
     try {
-      const res = await fetch(`http://localhost:5000/api/tasks/${selectedTask.id}/fulfill-cv`, {
+      const res = await fetch(`https://paleturquoise-stork-428174.hostingersite.com/api/tasks/${selectedTask.id}/fulfill-cv`, {
         method: 'POST',
         body: formData
       });
@@ -222,7 +222,7 @@ const Tareas = () => {
                 {selectedTask.type !== 'REQUEST_CVS' ? (
                   <>
                     <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl mb-4 text-center border border-slate-200 dark:border-slate-700">
-                      <a href={`http://localhost:5000/uploads/${selectedTask.cvId?.document}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 font-bold text-lg hover:underline"><FileText/> Ver Currículum ({selectedTask.cvId?.name})</a>
+                      <a href={`https://paleturquoise-stork-428174.hostingersite.com/uploads/${selectedTask.cvId?.document}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 font-bold text-lg hover:underline"><FileText/> Ver Currículum ({selectedTask.cvId?.name})</a>
                     </div>
                     
                     {selectedTask.cvId?.history && selectedTask.cvId.history.length > 0 && (

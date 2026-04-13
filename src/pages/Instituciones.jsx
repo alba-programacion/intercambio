@@ -19,8 +19,8 @@ const Instituciones = () => {
     setLoading(true);
     try {
       const [resInst, resUsers] = await Promise.all([
-        fetch('http://localhost:5000/api/institutions'),
-        fetch('http://localhost:5000/api/users')
+        fetch('https://paleturquoise-stork-428174.hostingersite.com/api/institutions'),
+        fetch('https://paleturquoise-stork-428174.hostingersite.com/api/users')
       ]);
       setInstitutions(await resInst.json());
       setUsers(await resUsers.json());
@@ -43,7 +43,7 @@ const Instituciones = () => {
         formData.append('logo', logoFile);
       }
 
-      const res = await fetch('http://localhost:5000/api/institutions', {
+      const res = await fetch('https://paleturquoise-stork-428174.hostingersite.com/api/institutions', {
         method: 'POST',
         body: formData
       });
@@ -59,7 +59,7 @@ const Instituciones = () => {
   const handleUpdateInstitution = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(`http://localhost:5000/api/institutions/${editingInst.id}`, {
+      const res = await fetch(`https://paleturquoise-stork-428174.hostingersite.com/api/institutions/${editingInst.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editForm)
@@ -72,7 +72,7 @@ const Instituciones = () => {
 
   const handleUpdateUser = async (userId, updates) => {
     try {
-      await fetch(`http://localhost:5000/api/users/${userId}`, {
+      await fetch(`https://paleturquoise-stork-428174.hostingersite.com/api/users/${userId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates)
@@ -104,7 +104,7 @@ const Instituciones = () => {
                   <div>
                     <div className="flex items-center gap-3">
                       {inst.logo ? (
-                        <img src={`http://localhost:5000/uploads/${inst.logo}`} alt={inst.name} className="w-10 h-10 object-cover rounded-xl border border-slate-200 dark:border-slate-700" />
+                        <img src={`https://paleturquoise-stork-428174.hostingersite.com/uploads/${inst.logo}`} alt={inst.name} className="w-10 h-10 object-cover rounded-xl border border-slate-200 dark:border-slate-700" />
                       ) : (
                         <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center rounded-xl text-indigo-500 font-bold border border-indigo-200 dark:border-indigo-800">
                           {inst.name.charAt(0)}

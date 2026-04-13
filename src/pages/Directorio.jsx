@@ -22,7 +22,7 @@ const Directorio = () => {
 
   const fetchContacts = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/contacts');
+      const res = await fetch('https://paleturquoise-stork-428174.hostingersite.com/api/contacts');
       const data = await res.json();
       setContacts(data);
     } catch(e) { console.error(e) }
@@ -36,7 +36,7 @@ const Directorio = () => {
     setError(''); setSuccess('');
     try {
       const isEdit = !!form._id;
-      const url = isEdit ? `http://localhost:5000/api/contacts/${form._id}` : 'http://localhost:5000/api/contacts';
+      const url = isEdit ? `https://paleturquoise-stork-428174.hostingersite.com/api/contacts/${form._id}` : 'https://paleturquoise-stork-428174.hostingersite.com/api/contacts';
       const method = isEdit ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
@@ -59,7 +59,7 @@ const Directorio = () => {
   const handleDeleteContact = async (contactId) => {
     if (!window.confirm("¿Estás seguro de que deseas eliminar este contacto del directorio? Esta acción no se puede deshacer.")) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/contacts/${contactId}`, { method: 'DELETE' });
+      const res = await fetch(`https://paleturquoise-stork-428174.hostingersite.com/api/contacts/${contactId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Error al eliminar contacto');
       fetchContacts();
     } catch(err) { alert(err.message) }

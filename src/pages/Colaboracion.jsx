@@ -15,13 +15,19 @@ const Colaboracion = () => {
   const [documentFile, setDocumentFile] = useState(null);
   const [collabError, setCollabError] = useState('');
   const [collabSuccess, setCollabSuccess] = useState('');
+  
+  const getInstName = (id) => {
+    if (!id) return null;
+    const inst = institutions.find(i => i.id === id || i._id === id);
+    return inst ? inst.name : id;
+  };
 
   const fetchData = async () => {
     try {
       const [cvsRes, instRes, tasksRes] = await Promise.all([
-        fetch('http://localhost:5000/api/cvs'),
-        fetch('http://localhost:5000/api/institutions'),
-        fetch(`http://localhost:5000/api/tasks?email=${user.email}`)
+        fetch('https://paleturquoise-stork-428174.hostingersite.com/api/cvs'),
+        fetch('https://paleturquoise-stork-428174.hostingersite.com/api/institutions'),
+        fetch(`https://paleturquoise-stork-428174.hostingersite.com/api/tasks?email=${user.email}`)
       ]);
       setCvs(await cvsRes.json());
       setInstitutions(await instRes.json());
@@ -56,7 +62,7 @@ const Colaboracion = () => {
     formData.append('document', documentFile);
 
     try {
-      const res = await fetch('http://localhost:5000/api/cvs/collab', {
+      const res = await fetch('https://paleturquoise-stork-428174.hostingersite.com/api/cvs/collab', {
         method: 'POST',
         body: formData
       });
@@ -122,11 +128,19 @@ const Colaboracion = () => {
                     const actualVac = t.targetVacancyId || t.cvId?.targetVacancyId;
                     const vacancyStr = actualVac?.role ? ` para la vacante de ${actualVac.role}` : '';
                     if (t.type === 'REQUEST_CVS') {
-                       if (t.senderEmail === user.email) msg = `Solicitaste CV a ${t.targetInstitutionId || 'la institución destino'}${vacancyStr} el ${dateStr}`;
-                       else msg = `${actualVac?.institutionName || actualVac?.institutionId || 'Otra Institución'} te solicitó CV${vacancyStr} el ${dateStr}`;
+                       if (t.senderEmail === user.email) {
+                          msg = `Solicitaste CV a ${getInstName(t.targetInstitutionId) || 'la institución destino'}${vacancyStr} el ${dateStr}`;
+                       } else {
+                          const requesterName = getInstName(actualVac?.institutionId) || actualVac?.institutionName || 'Otra Institución';
+                          msg = `${requesterName} te solicitó CV${vacancyStr} el ${dateStr}`;
+                       }
                     } else if (t.type === 'REVIEW_CV' && t.description === 'Institución envío cv') {
-                       if (t.senderEmail === user.email) msg = `Enviaste CV a ${t.cvId?.targetInstitutionId || 'la institución destino'}${vacancyStr} el ${dateStr}`;
-                       else msg = `${t.cvId?.sourceInstitutionId || 'Otra Institución'} te envió CV${vacancyStr} el ${dateStr}`;
+                       if (t.senderEmail === user.email) {
+                          msg = `Enviaste CV a ${getInstName(t.cvId?.targetInstitutionId || t.targetInstitutionId) || 'la institución destino'}${vacancyStr} el ${dateStr}`;
+                       } else {
+                          const senderName = getInstName(t.sourceInstitutionId || t.cvId?.sourceInstitutionId) || 'Otra Institución';
+                          msg = `${senderName} te envió CV${vacancyStr} el ${dateStr}`;
+                       }
                     }
                     return (
                       <div key={t.id} className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 rounded-xl flex items-center gap-3 transition-all hover:shadow-md">
@@ -199,7 +213,7 @@ const Colaboracion = () => {
                             Enviaste cv a <span className="font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 px-2 py-0.5 rounded mx-1">{cv.targetInstitutionId}</span> ({cv.targetVacancyId?.role || 'Puesto no especificado'}).
                           </p>
                         </div>
-                        <a href={`http://localhost:5000/uploads/${cv.document}`} target="_blank" rel="noopener noreferrer" className="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-100 flex items-center gap-2 shrink-0"><FileText className="w-4 h-4"/> Ver Archivo</a>
+                        <a href={`https://paleturquoise-stork-428174.hostingersite.com/uploads/${cv.document}`} target="_blank" rel="noopener noreferrer" className="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-100 flex items-center gap-2 shrink-0"><FileText className="w-4 h-4"/> Ver Archivo</a>
                       </div>
                     ))}
                   </div>

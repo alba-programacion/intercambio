@@ -15,7 +15,7 @@ const Register = () => {
   const [institutions, setInstitutions] = useState([]);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/institutions')
+    fetch('https://paleturquoise-stork-428174.hostingersite.com/api/institutions')
       .then(res => res.json())
       .then(data => setInstitutions(data))
       .catch(console.error);
@@ -39,7 +39,7 @@ const Register = () => {
         newInstitutionProfile: institutionId === 'NEW' ? newInstProfile : ''
       };
 
-      const res = await fetch('http://localhost:5000/api/auth/register', {
+      const res = await fetch('https://paleturquoise-stork-428174.hostingersite.com/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
