@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Briefcase, Building, Users, FileText, CheckSquare, LogOut, Menu, Book } from 'lucide-react';
 import { useAuth } from '../App';
+import logoAMIB from '../assets/logoamib.jpg';
 
 const Layout = ({ children }) => {
   const { user, logout } = useAuth();
@@ -27,6 +28,11 @@ const Layout = ({ children }) => {
       {/* Sidebar */}
       <aside className="w-64 glass-panel flex flex-col m-4 rounded-2xl overflow-hidden shadow-lg border border-slate-200 dark:border-slate-800 hidden md:flex">
         <div className="p-6 text-center border-b border-slate-200 dark:border-slate-800">
+          <div className="mb-4 flex justify-center">
+            <div className="bg-white p-1 rounded-full shadow-md border border-slate-100 h-24 w-24 flex items-center justify-center overflow-hidden">
+              <img src={logoAMIB} alt="AMIB Logo" className="h-full w-full object-contain" />
+            </div>
+          </div>
           <h1 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-indigo-600">
             TalentCollab
           </h1>
@@ -79,9 +85,14 @@ const Layout = ({ children }) => {
       <main className="flex-1 flex flex-col animate-fade-in p-4 lg:p-8 overflow-y-auto w-full">
         {/* Mobile Header */}
         <div className="flex md:hidden items-center justify-between mb-6 glass-panel p-4 rounded-xl shadow-sm">
-          <div>
-            <span className="font-bold text-lg bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-indigo-600 leading-none">TalentCollab</span>
-            <p className="text-xs font-bold text-slate-500">{user?.institutionName || 'Admin'}</p>
+          <div className="flex items-center gap-3">
+            <div className="bg-white p-0.5 rounded-full h-14 w-14 flex items-center justify-center overflow-hidden border border-slate-100 shadow-sm">
+              <img src={logoAMIB} alt="AMIB Logo" className="h-full w-full object-contain" />
+            </div>
+            <div>
+              <span className="font-bold text-lg bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-indigo-600 leading-none">TalentCollab</span>
+              <p className="text-xs font-bold text-slate-500">{user?.institutionName || 'Admin'}</p>
+            </div>
           </div>
           <button className="p-2"><Menu className="w-5 h-5"/></button>
         </div>

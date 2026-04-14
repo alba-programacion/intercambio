@@ -72,11 +72,11 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat, idx) => (
           <div key={idx} className="glass-panel p-6 rounded-3xl flex items-center gap-5 transition-all hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1 group">
-            <div className={`p-4 rounded-2xl ${stat.bg} ${stat.color} transition-transform group-hover:scale-110 duration-300`}>
+            <div className={`p-4 rounded-2xl ${stat.bg} ${stat.color} transition-transform group-hover:scale-110 duration-300 flex-shrink-0`}>
               <stat.icon className="w-8 h-8" />
             </div>
-            <div>
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{stat.title}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-1 truncate md:whitespace-normal">{stat.title}</p>
               <h3 className="text-3xl font-black text-slate-900 dark:text-white leading-none">
                 {loading ? <span className="animate-pulse bg-slate-200 dark:bg-slate-700 h-8 w-12 block rounded mt-1"></span> : (stat.value || 0)}
               </h3>
