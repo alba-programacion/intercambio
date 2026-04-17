@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Book, Building, Phone, Mail, ShieldCheck, Search, Plus, X, UserPlus, Edit2 } from 'lucide-react';
 import { useAuth } from '../App';
+import { API_URL } from '../config';
 
 const Directorio = () => {
   const { user } = useAuth();
@@ -22,9 +23,9 @@ const Directorio = () => {
 
   const fetchContacts = async () => {
     try {
-      const res = await fetch('https://paleturquoise-stork-428174.hostingersite.com/api/contacts');
+      const res = await fetch(`${API_URL}/api/contacts`);
       const data = await res.json();
-      setContacts(data);
+      setContacts(Array.isArray(data) ? data : []);
     } catch(e) { console.error(e) }
     finally { setLoading(false); }
   };
@@ -36,7 +37,7 @@ const Directorio = () => {
     setError(''); setSuccess('');
     try {
       const isEdit = !!form._id;
-      const url = isEdit ? `https://paleturquoise-stork-428174.hostingersite.com/api/contacts/${form._id}` : 'https://paleturquoise-stork-428174.hostingersite.com/api/contacts';
+      const url = isEdit ? `${API_URL}/api/contacts/${form._id}` : `${API_URL}/api/contacts`;
       const method = isEdit ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
@@ -59,7 +60,7 @@ const Directorio = () => {
   const handleDeleteContact = async (contactId) => {
     if (!window.confirm("¿Estás seguro de que deseas eliminar este contacto del directorio? Esta acción no se puede deshacer.")) return;
     try {
-      const res = await fetch(`https://paleturquoise-stork-428174.hostingersite.com/api/contacts/${contactId}`, { method: 'DELETE' });
+      const res = await fetch(`${API_URL}/api/contacts/${contactId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Error al eliminar contacto');
       fetchContacts();
     } catch(err) { alert(err.message) }

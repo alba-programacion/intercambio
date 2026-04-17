@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { Building, Users as UsersIcon, Shield, Plus, X, Trash2 } from 'lucide-react';
 import { useAuth } from '../App';
-import { Building, Users as UsersIcon, Shield, Plus, X } from 'lucide-react';
+import { API_URL } from '../config';
 
 const Instituciones = () => {
   const { user } = useAuth();
@@ -19,16 +20,16 @@ const Instituciones = () => {
     setLoading(true);
     try {
       const [resInst, resUsers] = await Promise.all([
-        fetch('https://paleturquoise-stork-428174.hostingersite.com/api/institutions'),
-        fetch('https://paleturquoise-stork-428174.hostingersite.com/api/users')
+        fetch(`${API_URL}/api/institutions`),
+        fetch(`${API_URL}/api/users`)
       ]);
-      setInstitutions(await resInst.json());
-      setUsers(await resUsers.json());
+      const instData = await resInst.json();
+      const userData = await resUsers.json();
+      setInstitutions(Array.isArray(instData) ? instData : []);
+      setUsers(Array.isArray(userData) ? userData : []);
     } catch(e) { console.error(e) }
     finally { setLoading(false); }
   };
-
-  useEffect(() => { fetchData() }, []);
 
   useEffect(() => { fetchData() }, []);
 
@@ -43,7 +44,7 @@ const Instituciones = () => {
         formData.append('logo', logoFile);
       }
 
-      const res = await fetch('https://paleturquoise-stork-428174.hostingersite.com/api/institutions', {
+      const res = await fetch(`${API_URL}/api/institutions`, {
         method: 'POST',
         body: formData
       });
@@ -59,7 +60,7 @@ const Instituciones = () => {
   const handleUpdateInstitution = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(`https://paleturquoise-stork-428174.hostingersite.com/api/institutions/${editingInst.id}`, {
+      const res = await fetch(`${API_URL}/api/institutions/${editingInst.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editForm)
@@ -70,9 +71,26 @@ const Instituciones = () => {
     } catch(err) { alert(err.message) }
   };
 
+  const handleDeleteInstitution = async (id, name) => {
+    if (!window.confirm(`¿Estás SEGURO de eliminar "${name}"?\nEsta acción es IRREVERSIBLE y eliminará permanentemente a TODOS los usuarios y vacantes de esta empresa.`)) {
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL}/api/institutions/${id}`, {
+        method: 'DELETE'
+      });
+      // Handle 200, 204 or 404 as success (item already gone)
+      if(!res.ok && res.status !== 404) throw new Error('Error al eliminar institución');
+      
+      // Update local state instantly so the UI reflects the change immediately
+      setInstitutions(prev => prev.filter(inst => inst.id !== id));
+      fetchData();
+    } catch(err) { alert(err.message) }
+  };
+
   const handleUpdateUser = async (userId, updates) => {
     try {
-      await fetch(`https://paleturquoise-stork-428174.hostingersite.com/api/users/${userId}`, {
+      await fetch(`${API_URL}/api/users/${userId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates)
@@ -104,7 +122,7 @@ const Instituciones = () => {
                   <div>
                     <div className="flex items-center gap-3">
                       {inst.logo ? (
-                        <img src={`https://paleturquoise-stork-428174.hostingersite.com/uploads/${inst.logo}`} alt={inst.name} className="w-10 h-10 object-cover rounded-xl border border-slate-200 dark:border-slate-700" />
+                        <img src={`${API_URL}/uploads/${inst.logo}`} alt={inst.name} className="w-10 h-10 object-cover rounded-xl border border-slate-200 dark:border-slate-700" />
                       ) : (
                         <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center rounded-xl text-indigo-500 font-bold border border-indigo-200 dark:border-indigo-800">
                           {inst.name.charAt(0)}
@@ -119,19 +137,15 @@ const Instituciones = () => {
                   <div className="flex flex-col items-end gap-2">
                     <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest">{inst.profile}</span>
                     <div className="flex items-center gap-2">
-                      <button onClick={() => {
-                        setEditingInst(inst);
-                        setEditForm({
-                          titularName: inst.titularName || '', titularMail: inst.titularMail || '', titularPhone: inst.titularPhone || '',
-                          suplenteName: inst.suplenteName || '', suplenteMail: inst.suplenteMail || '', suplentePhone: inst.suplentePhone || ''
-                        });
-                      }} className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 px-3 py-1 rounded-full text-xs font-bold transition-all">
-                        Editar Contactos
-                      </button>
                       <button onClick={() => setSelectedInstUsers(inst)} className="bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-400 px-3 py-1 rounded-full text-xs font-bold border border-indigo-100 dark:border-indigo-800 transition-colors flex items-center gap-1 cursor-pointer">
                         <UsersIcon className="w-3 h-3"/>
                         {users.filter(u => (u.institutionId?._id || u.institutionId) === inst.id).length} Usuarios
                       </button>
+                      {(user?.institutionId === inst.id && (user?.role === 'admin' || user?.role === 'management')) && (
+                        <button onClick={() => handleDeleteInstitution(inst.id, inst.name)} className="bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 p-2 rounded-full border border-red-100 dark:border-red-800/50 transition-all cursor-pointer">
+                           <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

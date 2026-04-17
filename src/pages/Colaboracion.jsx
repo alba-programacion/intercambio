@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../App';
-import { Send, Inbox, AlertCircle, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Send, Inbox, AlertCircle, CheckCircle2, XCircle, Clock, FileText } from 'lucide-react';
+import { API_URL } from '../config';
 
 const Colaboracion = () => {
   const { user } = useAuth();
   const [cvs, setCvs] = useState([]);
   const [institutions, setInstitutions] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('recibidos');
@@ -24,14 +26,21 @@ const Colaboracion = () => {
 
   const fetchData = async () => {
     try {
-      const [cvsRes, instRes, tasksRes] = await Promise.all([
-        fetch('https://paleturquoise-stork-428174.hostingersite.com/api/cvs'),
-        fetch('https://paleturquoise-stork-428174.hostingersite.com/api/institutions'),
-        fetch(`https://paleturquoise-stork-428174.hostingersite.com/api/tasks?email=${user.email}`)
+      const [cvsRes, instRes, tasksRes, usersRes] = await Promise.all([
+        fetch(`${API_URL}/api/cvs`),
+        fetch(`${API_URL}/api/institutions`),
+        fetch(`${API_URL}/api/tasks?email=${user.email}`),
+        fetch(`${API_URL}/api/users`)
       ]);
-      setCvs(await cvsRes.json());
-      setInstitutions(await instRes.json());
-      setTasks(await tasksRes.json());
+      const cvsData = await cvsRes.json();
+      const instData = await instRes.json();
+      const tasksData = await tasksRes.json();
+      const usersData = await usersRes.json();
+      
+      setCvs(cvsData);
+      setInstitutions(instData);
+      setTasks(tasksData);
+      setAllUsers(usersData);
     } catch (e) {
       console.error(e);
     } finally {
@@ -62,7 +71,7 @@ const Colaboracion = () => {
     formData.append('document', documentFile);
 
     try {
-      const res = await fetch('https://paleturquoise-stork-428174.hostingersite.com/api/cvs/collab', {
+      const res = await fetch(`${API_URL}/api/cvs/collab`, {
         method: 'POST',
         body: formData
       });
@@ -175,7 +184,19 @@ const Colaboracion = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-semibold text-indigo-600 dark:text-indigo-400 mb-1">¿A qué correo asignar la Tarea SLA?</label>
-                      <input type="email" value={applyForm.targetEmail} onChange={e=>setApplyForm({...applyForm, targetEmail: e.target.value})} placeholder="gerente@institucion.com" className="w-full px-4 py-2 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-900/20 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500" required />
+                      <select 
+                        value={applyForm.targetEmail} 
+                        onChange={e=>setApplyForm({...applyForm, targetEmail: e.target.value})} 
+                        className="w-full px-4 py-2 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-900/20 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500" 
+                        required
+                      >
+                        <option value="">Selecciona un destinatario...</option>
+                        {allUsers.filter(u => u.email !== user.email).map(u => (
+                          <option key={u._id} value={u.email}>
+                            {u.name || 'Sin Nombre'} - {u.email} ({u.institutionId?.name || 'Institución no especificada'})
+                          </option>
+                        ))}
+                      </select>
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-red-600 dark:text-red-400 mb-1">🚨 Fecha Límite de SLA</label>
@@ -213,7 +234,7 @@ const Colaboracion = () => {
                             Enviaste cv a <span className="font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 px-2 py-0.5 rounded mx-1">{cv.targetInstitutionId}</span> ({cv.targetVacancyId?.role || 'Puesto no especificado'}).
                           </p>
                         </div>
-                        <a href={`https://paleturquoise-stork-428174.hostingersite.com/uploads/${cv.document}`} target="_blank" rel="noopener noreferrer" className="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-100 flex items-center gap-2 shrink-0"><FileText className="w-4 h-4"/> Ver Archivo</a>
+                        <a href={`${API_URL}/uploads/${cv.document}`} target="_blank" rel="noopener noreferrer" className="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-100 flex items-center gap-2 shrink-0"><FileText className="w-4 h-4"/> Ver Archivo</a>
                       </div>
                     ))}
                   </div>

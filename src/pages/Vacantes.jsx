@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../App';
 import { Briefcase, Building, Clock, Users, FileText, X, Plus, Send } from 'lucide-react';
+import { API_URL } from '../config';
 
 const Vacantes = () => {
   const { user } = useAuth();
@@ -29,7 +30,7 @@ const Vacantes = () => {
 
   const fetchVacancies = async () => {
     try {
-      const res = await fetch('https://paleturquoise-stork-428174.hostingersite.com/api/vacancies');
+      const res = await fetch(`${API_URL}/api/vacancies`);
       const data = await res.json();
       setVacancies(data);
     } catch (e) {
@@ -41,7 +42,7 @@ const Vacantes = () => {
 
   const fetchAllCvs = async () => {
     try {
-      const res = await fetch('https://paleturquoise-stork-428174.hostingersite.com/api/cvs');
+      const res = await fetch(`${API_URL}/api/cvs`);
       const data = await res.json();
       const normalizedData = data.map(c => ({
         ...c,
@@ -55,12 +56,15 @@ const Vacantes = () => {
 
   const fetchInstitutions = async () => {
     try {
-      const res = await fetch('https://paleturquoise-stork-428174.hostingersite.com/api/institutions');
-      const data = await res.json();
-      setInstitutions(data);
-    } catch (e) {
-      console.error(e);
-    }
+      const [resVacs, resInsts] = await Promise.all([
+        fetch(`${API_URL}/api/vacancies`),
+        fetch(`${API_URL}/api/institutions`)
+      ]);
+      const vacsData = await resVacs.json();
+      const instsData = await resInsts.json();
+      setVacancies(Array.isArray(vacsData) ? vacsData : []);
+      setInstitutions(Array.isArray(instsData) ? instsData : []);
+    } catch(e) { console.error(e) }
   };
 
   useEffect(() => {
@@ -81,7 +85,7 @@ const Vacantes = () => {
     }
 
     try {
-      const res = await fetch('https://paleturquoise-stork-428174.hostingersite.com/api/vacancies', {
+      const res = await fetch(`${API_URL}/api/vacancies`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, institutionId: user?.institutionId })
@@ -112,7 +116,7 @@ const Vacantes = () => {
     formData.append('document', documentFile);
 
     try {
-      const res = await fetch('https://paleturquoise-stork-428174.hostingersite.com/api/cvs/vacancy', {
+      const res = await fetch(`${API_URL}/api/cvs/vacancy`, {
         method: 'POST',
         body: formData
       });
@@ -140,7 +144,7 @@ const Vacantes = () => {
     }
 
     try {
-      const res = await fetch(`https://paleturquoise-stork-428174.hostingersite.com/api/cvs/${cvId}/status`, {
+      const res = await fetch(`${API_URL}/api/cvs/${cvId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus, rejectedReason, rejectedBy })
@@ -156,7 +160,7 @@ const Vacantes = () => {
 
   const handleUpdateVacancyStatus = async (vacancyId, newStatus) => {
     try {
-      const res = await fetch(`https://paleturquoise-stork-428174.hostingersite.com/api/vacancies/${vacancyId}/status`, {
+      const res = await fetch(`${API_URL}/api/vacancies/${vacancyId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
@@ -172,7 +176,7 @@ const Vacantes = () => {
   const handleDeleteVacancy = async (vacancyId) => {
     if (!window.confirm("¿Estás seguro de que deseas eliminar esta vacante de forma permanente?")) return;
     try {
-      const res = await fetch(`https://paleturquoise-stork-428174.hostingersite.com/api/vacancies/${vacancyId}`, { method: 'DELETE' });
+      const res = await fetch(`${API_URL}/api/vacancies/${vacancyId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Error al eliminar');
       fetchVacancies();
       if (selectedVacancy && selectedVacancy.id === vacancyId) setSelectedVacancy(null);
@@ -185,7 +189,7 @@ const Vacantes = () => {
     if (!requestCvForm.targetInstitutionId) return setError('Selecciona una institución válida.');
 
     try {
-      const res = await fetch('https://paleturquoise-stork-428174.hostingersite.com/api/tasks/request-cv', {
+      const res = await fetch(`${API_URL}/api/tasks/request-cv`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -505,7 +509,7 @@ const Vacantes = () => {
                                     <option value="Contratado">Contratado</option>
                                   </select>
                                 </div>
-                                <a href={`https://paleturquoise-stork-428174.hostingersite.com/uploads/${cv.document}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-blue-600 text-sm font-semibold hover:underline">
+                                <a href={`${API_URL}/uploads/${cv.document}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-blue-600 text-sm font-semibold hover:underline">
                                   <FileText className="w-4 h-4"/> Ver CV
                                 </a>
                               </div>
@@ -544,7 +548,7 @@ const Vacantes = () => {
                                 <span className="text-slate-400">Publicado: {new Date(cv.createdAt).toLocaleDateString()}</span>
                               </div>
                             </div>
-                            <a href={`https://paleturquoise-stork-428174.hostingersite.com/uploads/${cv.document}`} target="_blank" rel="noopener noreferrer" className="bg-indigo-50 text-indigo-700 p-2 rounded-lg hover:bg-indigo-100 transition-colors ring-1 ring-inset ring-indigo-200">
+                            <a href={`${API_URL}/uploads/${cv.document}`} target="_blank" rel="noopener noreferrer" className="bg-indigo-50 text-indigo-700 p-2 rounded-lg hover:bg-indigo-100 transition-colors ring-1 ring-inset ring-indigo-200">
                               <FileText className="w-5 h-5"/>
                             </a>
                           </div>

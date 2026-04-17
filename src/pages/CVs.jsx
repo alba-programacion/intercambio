@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../App';
-import { FileText, Plus, AlertCircle } from 'lucide-react';
+import { FileText, Plus } from 'lucide-react';
+import { API_URL } from '../config';
 
 const CVs = () => {
   const { user } = useAuth();
@@ -13,7 +14,7 @@ const CVs = () => {
 
   const fetchCvs = async () => {
     try {
-      const res = await fetch('https://paleturquoise-stork-428174.hostingersite.com/api/cvs');
+      const res = await fetch(`${API_URL}/api/cvs`);
       const data = await res.json();
       // Local view: Only CVs that are purely local and unassigned
       setCvs(data.filter(c => !c.targetVacancyId && !c.targetInstitutionId));
@@ -38,7 +39,7 @@ const CVs = () => {
     formData.append('document', file);
 
     try {
-      const res = await fetch('https://paleturquoise-stork-428174.hostingersite.com/api/cvs', {
+      const res = await fetch(`${API_URL}/api/cvs`, {
         method: 'POST',
         body: formData
       });
@@ -58,7 +59,7 @@ const CVs = () => {
   const handleDeleteCv = async (cvId) => {
     if (!window.confirm("¿Eliminar este perfil de manera irreversible? Se removerá también de las vacantes y trámites en los que participe.")) return;
     try {
-      const res = await fetch(`https://paleturquoise-stork-428174.hostingersite.com/api/cvs/${cvId}`, { method: 'DELETE' });
+      const res = await fetch(`${API_URL}/api/cvs/${cvId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Error al eliminar');
       fetchCvs();
     } catch(err) { alert(err.message) }
@@ -141,7 +142,7 @@ const CVs = () => {
                        <td className="py-4 px-4">
                          <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                            <FileText className="w-4 h-4 text-slate-400" />
-                           <a href={`https://paleturquoise-stork-428174.hostingersite.com/uploads/${cv.document}`} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 hover:underline">
+                           <a href={`${API_URL}/uploads/${cv.document}`} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 hover:underline">
                              {cv.document}
                            </a>
                          </div>

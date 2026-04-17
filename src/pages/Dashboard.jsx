@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../App';
+import { API_URL } from '../config';
 import { Briefcase, Building, FileText, Clock, AlertCircle, PieChart, BarChart2, TrendingUp, Users } from 'lucide-react';
 
 const Dashboard = () => {
@@ -20,7 +21,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchMetrics = async () => {
       try {
-        const res = await fetch('https://paleturquoise-stork-428174.hostingersite.com/api/metrics');
+        const res = await fetch(`${API_URL}/api/metrics`);
         const data = await res.json();
         // Defensive: preserve structure if backend is missing fields or returning an error
         setMetrics(prev => ({
@@ -72,12 +73,12 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat, idx) => (
           <div key={idx} className="glass-panel p-6 rounded-3xl flex items-center gap-5 transition-all hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1 group">
-            <div className={`p-4 rounded-2xl ${stat.bg} ${stat.color} transition-transform group-hover:scale-110 duration-300 flex-shrink-0`}>
-              <stat.icon className="w-8 h-8" />
+            <div className={`p-3 rounded-2xl ${stat.bg} ${stat.color} transition-transform group-hover:scale-110 duration-300 flex-shrink-0`}>
+              <stat.icon className="w-6 h-6" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-1 truncate md:whitespace-normal">{stat.title}</p>
-              <h3 className="text-3xl font-black text-slate-900 dark:text-white leading-none">
+              <p className="text-[10px] leading-tight font-black text-slate-400 uppercase mb-1 break-words">{stat.title}</p>
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white leading-none">
                 {loading ? <span className="animate-pulse bg-slate-200 dark:bg-slate-700 h-8 w-12 block rounded mt-1"></span> : (stat.value || 0)}
               </h3>
             </div>

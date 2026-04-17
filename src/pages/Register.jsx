@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { UserPlus, Mail, Lock, Building, Briefcase, Plus, X, ArrowLeft } from 'lucide-react';
+import { API_URL } from '../config';
 import logoAMIB from '../assets/logoamib.jpg';
 
 const Register = () => {
@@ -16,7 +18,7 @@ const Register = () => {
   const [institutions, setInstitutions] = useState([]);
 
   useEffect(() => {
-    fetch('https://paleturquoise-stork-428174.hostingersite.com/api/institutions')
+    fetch(`${API_URL}/api/institutions`)
       .then(res => res.json())
       .then(data => setInstitutions(data))
       .catch(console.error);
@@ -40,7 +42,7 @@ const Register = () => {
         newInstitutionProfile: institutionId === 'NEW' ? newInstProfile : ''
       };
 
-      const res = await fetch('https://paleturquoise-stork-428174.hostingersite.com/api/auth/register', {
+      const res = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
