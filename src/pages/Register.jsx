@@ -9,7 +9,7 @@ const Register = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('user');
+  const [role, setRole] = useState('universidad');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [institutionId, setInstitutionId] = useState('');
@@ -121,7 +121,7 @@ const Register = () => {
               }}
               className="w-full px-4 py-2 bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all dark:text-white"
             >
-              <option value="user">Usuario Reclutador (Estándar)</option>
+              <option value="universidad">Universidad</option>
               <option value="management">Gerente / Coordinador</option>
               <option value="admin">Administrador Global del Sistema</option>
             </select>

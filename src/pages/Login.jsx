@@ -86,7 +86,7 @@ const Login = () => {
               <span className="font-semibold text-indigo-600 dark:text-indigo-400">Management (A)</span> <span className="text-xs">manager@inst-a.com</span>
             </button>
             <button onClick={() => quickLogin('user@inst-a.com')} className="px-4 py-2 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-sm transition-colors text-slate-700 dark:text-slate-300 flex justify-between items-center border border-slate-200 dark:border-slate-700/50">
-              <span className="font-semibold text-emerald-600 dark:text-emerald-400">Usuario (A)</span> <span className="text-xs">user@inst-a.com</span>
+              <span className="font-semibold text-emerald-600 dark:text-emerald-400">Universidad (A)</span> <span className="text-xs">user@inst-a.com</span>
             </button>
           </div>
         </div>

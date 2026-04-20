@@ -203,7 +203,7 @@ const Instituciones = () => {
                       {user.name.charAt(0)}
                     </div>
                     <div>
-                      <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2">{user.name} <span className="text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded uppercase font-bold tracking-wider">{user.role}</span></div>
+                      <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2">{user.name} <span className="text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded uppercase font-bold tracking-wider">{user.role === 'universidad' ? 'Universidad' : user.role}</span></div>
                       <div className="text-sm text-slate-500">{user.email}</div>
                     </div>
                   </div>

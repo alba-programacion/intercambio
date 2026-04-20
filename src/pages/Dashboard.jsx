@@ -48,7 +48,7 @@ const Dashboard = () => {
     { title: 'Total Vacantes', value: metrics?.totalVacancies || 0, icon: Briefcase, color: 'text-blue-500', bg: 'bg-blue-100 dark:bg-blue-900/30' },
     { title: 'Instituciones Red', value: metrics?.totalInstitutions || 0, icon: Building, color: 'text-indigo-500', bg: 'bg-indigo-100 dark:bg-indigo-900/30' },
     { title: 'CVs Totales', value: metrics?.totalCvs || 0, icon: FileText, color: 'text-purple-500', bg: 'bg-purple-100 dark:bg-purple-900/30' },
-    { title: 'CVs en Proceso', value: metrics?.cvsInProcess || 0, icon: Clock, color: 'text-amber-500', bg: 'bg-amber-100 dark:bg-amber-900/30' },
+    { title: 'CVs en trámite', value: metrics?.cvsInProcess || 0, icon: Clock, color: 'text-amber-500', bg: 'bg-amber-100 dark:bg-amber-900/30' },
   ];
 
   const requestStats = metrics?.requestStats || { requested: 0, sent: 0, open: 0 };
@@ -66,7 +66,9 @@ const Dashboard = () => {
         </div>
         <div className="hidden md:block text-right">
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Estatus del Operador</p>
-          <span className="px-3 py-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-full text-xs font-bold ring-1 ring-emerald-500/20">Administrador Global</span>
+          <span className="px-3 py-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-full text-xs font-bold ring-1 ring-emerald-500/20">
+            {user?.role === 'admin' ? 'Administrador Global' : user?.role === 'universidad' ? 'Universidad' : 'Coordinador'}
+          </span>
         </div>
       </div>
 
@@ -92,11 +94,11 @@ const Dashboard = () => {
         
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
            <div>
-             <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2"><Users className="text-indigo-500 w-5 h-5"/> Candidatos en Proceso de Colaboración</h3>
+             <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2"><Users className="text-indigo-500 w-5 h-5"/> Candidatos en trámite de Colaboración</h3>
              <p className="text-sm text-slate-500 font-medium">Desglose detallado de talento activo vinculando origen y destino.</p>
            </div>
            <div className="px-4 py-2 bg-indigo-50 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400 rounded-xl text-xs font-bold flex items-center gap-2">
-             <TrendingUp className="w-4 h-4" /> {cvsInProcessList.length} Candidatos activos
+             <TrendingUp className="w-4 h-4" /> {cvsInProcessList.length} Candidatos en trámite
            </div>
         </div>
 
@@ -134,7 +136,7 @@ const Dashboard = () => {
               ))}
               {cvsInProcessList.length === 0 && (
                 <tr>
-                  <td colSpan="4" className="py-12 text-center text-slate-400 font-medium italic">No hay candidatos actualmente en proceso.</td>
+                  <td colSpan="4" className="py-12 text-center text-slate-400 font-medium italic">No hay candidatos actualmente en trámite.</td>
                 </tr>
               )}
             </tbody>

@@ -114,66 +114,72 @@ const Directorio = () => {
           <p className="text-slate-500 font-black uppercase tracking-widest text-xs">Sincronizando Directorio...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+        <div className="flex flex-col gap-4">
           {filtered.map((c, idx) => (
-            <div key={c._id || idx} className="group relative bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 shadow-xl border border-slate-100 dark:border-slate-800 transition-all hover:-translate-y-2 overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 dark:bg-indigo-900/10 rounded-bl-[5rem] -mr-12 -mt-12 group-hover:scale-150 duration-700"></div>
-              
-              <div className="relative z-10 space-y-6">
-                <div>
-                   <div className="flex justify-between items-start mb-2">
-                     <h3 className="text-2xl font-black text-slate-900 dark:text-white leading-tight">{c.institutionName}</h3>
-                     <div className="flex gap-2">
-                       {user?.role === 'admin' && (
-                         <>
-                           <button onClick={() => { setForm(c); setShowAddModal(true); }} className="text-slate-400 hover:text-indigo-500 transition-colors p-2 bg-slate-50 dark:bg-slate-800 rounded-xl" title="Editar Contacto">
-                              <Edit2 className="w-4 h-4" />
-                           </button>
-                           <button onClick={() => handleDeleteContact(c._id)} className="text-red-400 hover:text-red-600 transition-colors p-2 bg-red-50 dark:bg-red-900/20 rounded-xl" title="Eliminar Contacto">
-                              <X className="w-4 h-4 text-red-500" />
-                           </button>
-                         </>
-                       )}
-                     </div>
+            <div key={c._id || idx} className="group relative bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-800 transition-all hover:shadow-md hover:border-indigo-100 dark:hover:border-indigo-900/30 overflow-hidden">
+              <div className="relative z-10 flex flex-col lg:flex-row items-center gap-6">
+                
+                {/* Institution Column */}
+                <div className="lg:w-1/4 w-full border-b lg:border-b-0 lg:border-r border-slate-100 dark:border-slate-800 pb-4 lg:pb-0 lg:pr-6">
+                   <div className="flex justify-between items-start mb-1">
+                     <h3 className="text-lg font-black text-slate-900 dark:text-white leading-tight truncate" title={c.institutionName}>{c.institutionName}</h3>
                    </div>
-                   <div className="px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-[10px] font-black uppercase tracking-widest text-indigo-600 inline-block">Entidad Registrada</div>
+                   <div className="px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-[9px] font-black uppercase tracking-widest text-indigo-600 inline-block">Entidad</div>
                 </div>
 
-                <div className="space-y-4">
-                  {/* Titular Card */}
-                  <div className="p-5 rounded-[2rem] bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50">
-                    <div className="flex justify-between items-start mb-2">
-                       <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Titular</span>
-                       <ShieldCheck className="w-4 h-4 text-indigo-500 opacity-50" />
-                    </div>
-                    <p className="text-lg font-black text-slate-800 dark:text-slate-200 mb-3">{c.titular}</p>
-                    <div className="space-y-2">
-                      <a href={`mailto:${c.titularEmail}`} className="flex items-center gap-3 text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors">
-                        <Mail className="w-4 h-4 text-slate-400" /> {c.titularEmail}
+                {/* Titular Column */}
+                <div className="lg:flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest block">Titular</span>
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{c.titular}</p>
+                    <div className="flex flex-wrap gap-3">
+                      <a href={`mailto:${c.titularEmail}`} className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-indigo-600 transition-colors truncate max-w-[200px]">
+                        <Mail className="w-3.5 h-3.5 text-slate-400" /> {c.titularEmail}
                       </a>
-                      <a href={`tel:${c.titularPhone}`} className="flex items-center gap-3 text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors">
-                        <Phone className="w-4 h-4 text-slate-400" /> {c.titularPhone}
+                      <a href={`tel:${c.titularPhone}`} className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-indigo-600 transition-colors">
+                        <Phone className="w-3.5 h-3.5 text-slate-400" /> {c.titularPhone}
                       </a>
                     </div>
                   </div>
 
-                  {/* Suplente Card */}
-                  <div className="p-5 rounded-[2rem] bg-indigo-500/5 border border-dashed border-indigo-500/20">
-                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1 block">Delegado Suplente</span>
-                    <p className="font-bold text-slate-700 dark:text-slate-300">{c.suplente || 'Sin asignar'}</p>
+                  {/* Suplente Info */}
+                  <div className="space-y-1">
+                    <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Suplente</span>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300 truncate">{c.suplente || '—'}</p>
                     {c.suplenteEmail && (
-                      <div className="flex items-center gap-4 mt-2">
-                        <a href={`mailto:${c.suplenteEmail}`} className="text-slate-400 hover:text-indigo-500 transition-colors"><Mail className="w-4 h-4" /></a>
-                        {c.suplentePhone && <a href={`tel:${c.suplentePhone}`} className="text-slate-400 hover:text-indigo-500 transition-colors"><Phone className="w-4 h-4" /></a>}
+                      <div className="flex flex-wrap gap-3">
+                        <a href={`mailto:${c.suplenteEmail}`} className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-indigo-600 transition-colors truncate max-w-[200px]">
+                          <Mail className="w-3.5 h-3.5 text-slate-400" /> {c.suplenteEmail}
+                        </a>
+                        {c.suplentePhone && (
+                          <a href={`tel:${c.suplentePhone}`} className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-indigo-600 transition-colors">
+                            <Phone className="w-3.5 h-3.5 text-slate-400" /> {c.suplentePhone}
+                          </a>
+                        )}
                       </div>
                     )}
                   </div>
                 </div>
+
+                {/* Actions Column */}
+                <div className="lg:w-auto w-full flex justify-end gap-2 lg:pl-6 lg:border-l border-slate-100 dark:border-slate-800 pt-4 lg:pt-0">
+                  {user?.role === 'admin' && (
+                    <>
+                      <button onClick={() => { setForm(c); setShowAddModal(true); }} className="text-slate-400 hover:text-indigo-500 transition-colors p-2 bg-slate-50 dark:bg-slate-800 rounded-xl" title="Editar">
+                         <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleDeleteContact(c._id)} className="text-red-400 hover:text-red-600 transition-colors p-2 bg-red-50 dark:bg-red-900/20 rounded-xl" title="Eliminar">
+                         <X className="w-4 h-4 text-red-500" />
+                      </button>
+                    </>
+                  )}
+                </div>
+
               </div>
             </div>
           ))}
           {filtered.length === 0 && (
-            <div className="col-span-full py-24 text-center">
+            <div className="py-24 text-center bg-white dark:bg-slate-900 rounded-[3rem] border border-dashed border-slate-200 dark:border-slate-800">
                <Book className="w-16 h-16 text-slate-200 mx-auto mb-4" />
                <h3 className="text-2xl font-black text-slate-900 dark:text-white">Directorio Vacío</h3>
                <p className="text-slate-500 font-medium">No hay contactos registrados aún en el sistema.</p>

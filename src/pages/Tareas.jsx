@@ -147,7 +147,7 @@ const Tareas = () => {
                   {t.type === 'REQUEST_CVS' ? 
                      (t.senderEmail === user.email ? 
                          `Solicitaste CV a ${t.targetInstitutionId || 'Otra Institución'}${actualVac?.role ? ` para la vacante de ${actualVac.role}` : ''}` : 
-                         `${actualVac?.institutionName || actualVac?.institutionId || 'Otra Institución'} te solicitó CV${actualVac?.role ? ` para la vacante de ${actualVac.role}` : ''}`)
+                         `${actualVac?.institutionId?.name || (typeof actualVac?.institutionId === 'string' ? actualVac.institutionId : 'Otra Institución')} te solicitó CV${actualVac?.role ? ` para la vacante de ${actualVac.role}` : ''}`)
                    :
                    t.type === 'REVIEW_CV' && t.description === 'Institución envío cv' ? 
                      (t.senderEmail === user.email ? 
