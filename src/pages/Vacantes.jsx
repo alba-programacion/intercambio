@@ -16,6 +16,23 @@ const REJECTION_CODES = {
   'I': 'OTRO'
 };
 
+const formatSalary = (salary) => {
+  if (!salary) return 'No especificado';
+  // If it's just a number, format it
+  const num = parseFloat(salary.replace(/[^0-9.]/g, ''));
+  if (!isNaN(num) && !salary.includes('-')) {
+    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2 }).format(num);
+  }
+  // If it's a range, try to format parts
+  if (salary.includes('-')) {
+    return salary.split('-').map(s => {
+      const n = parseFloat(s.replace(/[^0-9.]/g, ''));
+      return !isNaN(n) ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2 }).format(n) : s.trim();
+    }).join(' - ');
+  }
+  return salary;
+};
+
 const Vacantes = () => {
   const { user } = useAuth();
   const [vacancies, setVacancies] = useState([]);
@@ -34,8 +51,9 @@ const Vacantes = () => {
   // Forms state
   const [form, setForm] = useState({ 
     role: '', salary: '', location: '', modality: 'Presencial',
-    knowledgeTest: '', language: '', activities: '', confidential: false,
-    age: '', gender: 'Indistinto', skills: '', institutionId: ''
+    experience: '', education: '', observations: '', language: '', 
+    activities: '', confidential: false, age: '', gender: 'Indistinto', 
+    skills: '', institutionId: ''
   });
   const [applyForm, setApplyForm] = useState({ name: '', email: '' });
   const [requestCvForm, setRequestCvForm] = useState({ targetInstitutionId: '', description: '', dueDate: '' });
@@ -110,8 +128,9 @@ const Vacantes = () => {
       if (!res.ok) throw new Error('Error al crear vacante');
       setForm({ 
         role: '', salary: '', location: '', modality: 'Presencial',
-        knowledgeTest: '', language: '', activities: '', confidential: false,
-        age: '', gender: 'Indistinto', skills: '', institutionId: ''
+        experience: '', education: '', observations: '', language: '', 
+        activities: '', confidential: false, age: '', gender: 'Indistinto', 
+        skills: '', institutionId: ''
       });
       setShowAddModal(false);
       fetchVacancies();
@@ -140,9 +159,20 @@ const Vacantes = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al enviar CV');
       
-      setSuccess('¡CV postulado exitosamente a la vacante!');
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#2563eb', '#10b981', '#ffffff']
+      });
+      setSuccess('¡Candidato postulado exitosamente! La institución recibirá una notificación.');
       setApplyForm({ name: '', email: '' });
       setDocumentFile(null);
+      
+      // Auto-scroll to top to see the success message
+      const modalBody = document.getElementById('vacancy-modal-body');
+      if (modalBody) modalBody.scrollTo({ top: 0, behavior: 'smooth' });
+      
       fetchVacancies(); 
       fetchAllCvs();
       setSelectedVacancy(prev => ({...prev, cvCount: prev.cvCount + 1}));
@@ -254,14 +284,15 @@ const Vacantes = () => {
   const calculateProgress = () => {
     let p = 0;
     if (form.role?.trim() !== '') p += 10;
-    if (form.salary?.trim() !== '') p += 10;
-    if (form.location?.trim() !== '') p += 10;
-    if (form.activities?.trim() !== '') p += 20;
-    if (form.skills?.trim() !== '') p += 20;
+    if (form.salary?.trim() !== '') p += 5;
+    if (form.location?.trim() !== '') p += 5;
+    if (form.activities?.trim() !== '') p += 15;
+    if (form.skills?.trim() !== '') p += 15;
+    if (form.experience?.trim() !== '') p += 15;
+    if (form.education?.trim() !== '') p += 10;
     if (form.modality?.trim() !== '') p += 10;
     if (form.language?.trim() !== '') p += 10;
     if (form.age?.trim() !== '') p += 5;
-    if (form.gender?.trim() !== '') p += 5;
     return p > 100 ? 100 : p;
   };
 
@@ -309,6 +340,7 @@ const Vacantes = () => {
               </div>
               
               <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{v.role}</h3>
+              <p className="text-sm font-bold text-blue-600 dark:text-blue-400 mt-1">{formatSalary(v.salary)}</p>
               <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-3 h-10">{v.activities}</p>
               
               <div className="flex flex-wrap items-center gap-4 text-sm font-semibold mb-4">
@@ -400,14 +432,24 @@ const Vacantes = () => {
                   <input type="text" value={form.language} onChange={e=>setForm({...form, language: e.target.value})} placeholder="Ej. Inglés B2" className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium dark:text-slate-300 mb-1">Prueba de Conocimientos</label>
-                  <input type="text" value={form.knowledgeTest} onChange={e=>setForm({...form, knowledgeTest: e.target.value})} placeholder="Sí (Examen Técnico), No, etc." className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" />
+                  <label className="block text-sm font-medium dark:text-slate-300 mb-1">Escolaridad</label>
+                  <input type="text" value={form.education} onChange={e=>setForm({...form, education: e.target.value})} placeholder="Ej. Licenciatura en Administración" className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium dark:text-slate-300 mb-1">Experiencia Necesaria</label>
+                <textarea value={form.experience} onChange={e=>setForm({...form, experience: e.target.value})} rows="2" placeholder="Ej. 2 años en puestos similares..." className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white resize-none"></textarea>
               </div>
 
               <div>
                 <label className="block text-sm font-medium dark:text-slate-300 mb-1">Descripción de Actividades</label>
                 <textarea value={form.activities} onChange={e=>setForm({...form, activities: e.target.value})} rows="3" className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white resize-none" required></textarea>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium dark:text-slate-300 mb-1">Observaciones Adicionales</label>
+                <textarea value={form.observations} onChange={e=>setForm({...form, observations: e.target.value})} rows="2" placeholder="Cualquier otro detalle relevante..." className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white resize-none"></textarea>
               </div>
 
               <div className="flex items-center gap-3 bg-red-50 dark:bg-red-900/10 p-3 rounded-xl border border-red-100 dark:border-red-900/50">
@@ -465,14 +507,14 @@ const Vacantes = () => {
               </div>
             </div>
             
-            <div className="p-6 overflow-y-auto space-y-6">
+            <div id="vacancy-modal-body" className="p-6 overflow-y-auto space-y-6">
               {error && selectedVacancy && <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-200">{error}</div>}
               {success && selectedVacancy && <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg text-sm border border-emerald-200">{success}</div>}
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="col-span-2">
                   <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Rango Salarial</h4>
-                  <p className="text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 p-2 rounded border border-slate-100 dark:border-slate-700 text-sm">{selectedVacancy.salary || 'No especificado'}</p>
+                  <p className="text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 p-2 rounded border border-slate-100 dark:border-slate-700 text-sm">{formatSalary(selectedVacancy.salary)}</p>
                 </div>
                 <div className="col-span-2">
                   <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Modalidad</h4>
@@ -484,29 +526,36 @@ const Vacantes = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="col-span-1 md:col-span-2">
-                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Edad ideal</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Edad</h4>
                   <p className="text-slate-800 dark:text-slate-200 font-medium text-sm">{selectedVacancy.age || 'Indistinto'}</p>
                 </div>
-                <div className="col-span-1 md:col-span-2">
+                <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
                   <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Sexo</h4>
                   <p className="text-slate-800 dark:text-slate-200 font-medium text-sm">{selectedVacancy.gender || 'Indistinto'}</p>
                 </div>
-                <div className="col-span-2 sm:col-span-4">
-                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Habilidades (Skills)</h4>
+                <div className="col-span-1 md:col-span-2 bg-slate-50 dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Habilidades</h4>
                   <p className="text-slate-800 dark:text-slate-200 font-medium text-sm">{selectedVacancy.skills || 'No especificado'}</p>
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
-                <div>
-                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Examen / Prueba Conocimientos</h4>
-                  <p className="text-slate-800 dark:text-slate-200 font-medium text-sm">{selectedVacancy.knowledgeTest || 'No'}</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Escolaridad</h4>
+                  <p className="text-slate-800 dark:text-slate-200 font-medium text-sm">{selectedVacancy.education || 'No especificado'}</p>
                 </div>
-                <div>
+                <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
                   <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Dominio de Idioma</h4>
                   <p className="text-slate-800 dark:text-slate-200 font-medium text-sm">{selectedVacancy.language || 'No requerido'}</p>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-bold text-slate-900 dark:text-slate-300 uppercase tracking-wider mb-2">Experiencia Necesaria</h4>
+                <div className="text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 whitespace-pre-line text-sm">
+                  {selectedVacancy.experience || 'No especificado.'}
                 </div>
               </div>
 
@@ -516,6 +565,15 @@ const Vacantes = () => {
                   {selectedVacancy.activities || 'Sin actividades detalladas.'}
                 </div>
               </div>
+
+              {selectedVacancy.observations && (
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-slate-300 uppercase tracking-wider mb-2">Observaciones Adicionales</h4>
+                  <div className="text-slate-700 dark:text-slate-300 bg-amber-50 dark:bg-amber-900/10 p-4 rounded-xl border border-amber-100 dark:border-amber-900/30 whitespace-pre-line text-sm italic">
+                    {selectedVacancy.observations}
+                  </div>
+                </div>
+              )}
               
               {selectedVacancy.confidential && (
                 <div className="bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400 p-3 rounded-lg border border-red-200 dark:border-red-800/50 text-sm font-bold text-center">
@@ -524,7 +582,7 @@ const Vacantes = () => {
               )}
 
               {/* CVS POSTULADOS - Restricted for user role */}
-              {user?.role !== 'user' && (
+              {['universidad', 'management', 'admin'].includes(user?.role) && (
                 <>
                   <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden glass-panel">
                     <div className="bg-slate-50 dark:bg-slate-800/80 px-6 py-4 border-b border-slate-200 dark:border-slate-700">
@@ -735,7 +793,7 @@ const Vacantes = () => {
                   Confirmar Rechazo y Archivar
                 </button>
                 <p className="text-[10px] text-center text-slate-400 mt-4 leading-normal">
-                  Al confirmar, el perfil será movido a "Gestión de CVs" y se programará su eliminación automática en 30 días.
+                  Al confirmar, el perfil será movido a "Repositorio de candidatos" y se programará su eliminación automática en 30 días.
                 </p>
               </div>
             </form>

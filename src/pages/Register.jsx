@@ -122,7 +122,7 @@ const Register = () => {
               className="w-full px-4 py-2 bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all dark:text-white"
             >
               <option value="universidad">Universidad</option>
-              <option value="management">Gerente / Coordinador</option>
+              <option value="management">Rol institucion-usuario</option>
               <option value="admin">Administrador Global del Sistema</option>
             </select>
           </div>

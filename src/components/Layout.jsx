@@ -55,7 +55,7 @@ const Layout = ({ children }) => {
     { to: '/vacantes', icon: Briefcase, label: 'Vacantes' },
     { to: '/tareas', icon: CheckSquare, label: 'Mis Trámites' },
     { to: '/colaboracion', icon: Users, label: 'Colaboración' },
-    { to: '/cvs', icon: FileText, label: 'Gestión de CVs' },
+    { to: '/cvs', icon: FileText, label: 'Repositorio de candidatos' },
     { to: '/instituciones', icon: Building, label: 'Instituciones', adminOnly: true },
     { to: '/directorio', icon: Book, label: 'Directorio' },
   ];
@@ -114,7 +114,7 @@ const Layout = ({ children }) => {
               <LogOut className="w-4 h-4" />
             </button>
           </div>
-          <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wide mt-2">{user?.role === 'universidad' ? 'Universidad' : user?.role}</p>
+          <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wide mt-2">{user?.role === 'universidad' ? 'Universidad' : user?.role === 'management' ? 'Rol institucion-usuario' : user?.role}</p>
         </div>
       </aside>
 

@@ -81,7 +81,7 @@ const CVs = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Gestión de CVs</h1>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Repositorio de candidatos</h1>
         <p className="text-slate-500 dark:text-slate-400">Carga manual y visualización de currículums aportados por tu institución.</p>
       </div>
 
