@@ -18,13 +18,24 @@ const Layout = ({ children }) => {
   const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
-    if (!user || user.role === 'user' || !user.institutionId) return;
+    console.log('Layout: User state changed:', user);
+    if (!user || user.role === 'universidad') {
+      console.log('Layout: Returning early (universidad or no user)');
+      return;
+    }
 
     const fetchNotifications = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/notifications/${user.institutionId}`);
+        const fetchId = user.institutionId || 'global';
+        const url = `${API_URL}/api/notifications/${fetchId}`;
+        console.log('Layout: Fetching notifications from URL:', url);
+        if (!fetchId && user.role !== 'admin') return;
+        
+        const res = await fetch(url);
+        console.log('Layout: Notifications fetch status:', res.status);
         if (res.ok) {
           const data = await res.json();
+          console.log('Layout: Notifications received:', data.length);
           setNotifications(data);
         }
       } catch (e) { console.error('Failed to fetch notifications'); }
@@ -53,8 +64,7 @@ const Layout = ({ children }) => {
   const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', adminOnly: true },
     { to: '/vacantes', icon: Briefcase, label: 'Vacantes' },
-    { to: '/tareas', icon: CheckSquare, label: 'Mis Trámites' },
-    { to: '/colaboracion', icon: Users, label: 'Colaboración' },
+    { to: '/gestion-tareas', icon: CheckSquare, label: 'Gestión de Tareas' },
     { to: '/cvs', icon: FileText, label: 'Repositorio de candidatos' },
     { to: '/instituciones', icon: Building, label: 'Instituciones', adminOnly: true },
     { to: '/directorio', icon: Book, label: 'Directorio' },

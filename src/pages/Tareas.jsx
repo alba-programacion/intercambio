@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../App';
 import { Calendar, AlertCircle, CheckCircle2, FileText, Banknote, X } from 'lucide-react';
 import { API_URL } from '../config';
+import confetti from 'canvas-confetti';
 
 const Tareas = () => {
   const { user } = useAuth();
@@ -15,11 +16,13 @@ const Tareas = () => {
   const [selectedVacancyId, setSelectedVacancyId] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [activeTab, setActiveTab] = useState('pendientes');
 
   // Fulfilling requests
   const [applyForm, setApplyForm] = useState({ name: '', email: '' });
   const [documentFile, setDocumentFile] = useState(null);
+  const [submittingCv, setSubmittingCv] = useState(false);
 
   const fetchTasks = async () => {
     try {
@@ -71,7 +74,8 @@ const Tareas = () => {
       });
       if(!resTask.ok) throw new Error('Error al completar la tarea');
       
-      setSuccess('¡Tarea resuelta exitosamente!');
+      setSuccessMessage('¡Tarea resuelta exitosamente!');
+      setTimeout(() => setSuccessMessage(''), 3000);
       setSelectedTask(null);
       fetchTasks();
     } catch(err) { setError(err.message); }
@@ -79,9 +83,11 @@ const Tareas = () => {
 
   const handleFulfillCv = async (e) => {
     e.preventDefault();
+    if (submittingCv) return;
     setError(''); setSuccess('');
     if (!documentFile) return setError('Por favor adjunta el CV (PDF/Word).');
     
+    setSubmittingCv(true);
     const formData = new FormData();
     formData.append('name', applyForm.name);
     formData.append('email', applyForm.email);
@@ -97,12 +103,25 @@ const Tareas = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al enviar CV');
       
-      setSuccess('¡CV enviado exitosamente a la institución solicitante!');
+      setSuccessMessage('¡CV enviado exitosamente!');
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#2563eb', '#10b981', '#ffffff']
+      });
+      setTimeout(() => setSuccessMessage(''), 3000);
+      
       setApplyForm({ name: '', email: '' });
+      
+      // Clear file input UI
+      const fileInput = document.querySelector('input[type="file"]');
+      if (fileInput) fileInput.value = '';
       setDocumentFile(null);
       setSelectedTask(null);
       fetchTasks(); 
     } catch(err) { setError(err.message); }
+    finally { setSubmittingCv(false); }
   };
 
   const validTasks = tasks.filter(t => !(t.senderEmail === user?.email && (t.type === 'REQUEST_CVS' || t.description === 'Institución rechazó el CV' || t.description === 'Institución aceptó el CV')));
@@ -110,6 +129,16 @@ const Tareas = () => {
 
   return (
     <div className="space-y-6">
+      {/* Success Notification Overlay */}
+      {successMessage && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none animate-in fade-in zoom-in duration-300">
+          <div className="bg-emerald-500 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border-2 border-emerald-400/50 scale-110">
+            <CheckCircle2 className="w-8 h-8" />
+            <span className="text-xl font-bold">{successMessage}</span>
+          </div>
+        </div>
+      )}
+
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Bandeja de Trámites y Tareas</h1>
         <p className="text-slate-500 dark:text-slate-400">Revisa las postulaciones directas y evita multas por vencimiento.</p>
@@ -300,9 +329,23 @@ const Tareas = () => {
                 )}
                 
                 {selectedTask.status !== 'COMPLETED' && selectedTask.senderEmail !== user.email && (
-                  <button type="submit" disabled={(!isReceiptOnly && selectedTask.type !== 'REQUEST_CVS' && !selectedVacancyId) ? true : false} className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white py-3 rounded-xl font-medium shadow-lg shadow-emerald-500/30 transition-all">
-                    {selectedTask.type === 'REQUEST_CVS' ? 'Enviar CV y Completar Solicitud' : 
-                     isReceiptOnly ? 'Entendido (Marcar de Enterado)' : 'Completar Tarea'}
+                  <button 
+                    type="submit" 
+                    disabled={submittingCv || (!isReceiptOnly && selectedTask.type !== 'REQUEST_CVS' && !selectedVacancyId)} 
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white py-3 rounded-xl font-medium shadow-lg shadow-emerald-500/30 transition-all flex items-center justify-center gap-2"
+                  >
+                    {submittingCv ? (
+                      <>
+                        <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
+                        <span>Enviando...</span>
+                      </>
+                    ) : selectedTask.type === 'REQUEST_CVS' ? (
+                      'Enviar CV y Completar Solicitud'
+                    ) : isReceiptOnly ? (
+                      'Entendido (Marcar de Enterado)'
+                    ) : (
+                      'Completar Tarea'
+                    )}
                   </button>
                 )}
              </form>

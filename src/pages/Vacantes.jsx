@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../App';
-import { Briefcase, Building, Clock, Users, FileText, X, Plus, Send } from 'lucide-react';
+import { Briefcase, Building, Clock, Users, FileText, X, Plus, Send, CheckCircle } from 'lucide-react';
 import { API_URL } from '../config';
 import confetti from 'canvas-confetti';
 
@@ -42,6 +42,8 @@ const Vacantes = () => {
 
   // Modals state
   const [showAddModal, setShowAddModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [selectedVacancy, setSelectedVacancy] = useState(null);
   const [showRejectionModal, setShowRejectionModal] = useState(false);
   const [rejectingCv, setRejectingCv] = useState(null);
@@ -58,10 +60,12 @@ const Vacantes = () => {
   const [applyForm, setApplyForm] = useState({ name: '', email: '' });
   const [requestCvForm, setRequestCvForm] = useState({ targetInstitutionId: '', description: '', dueDate: '' });
   const [documentFile, setDocumentFile] = useState(null);
+  const [submittingCv, setSubmittingCv] = useState(false);
   
   // Messages
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const fetchVacancies = async () => {
     try {
@@ -114,18 +118,26 @@ const Vacantes = () => {
     e.preventDefault();
     setError(''); setSuccess('');
     
-    if (!user?.institutionId) {
+    if (!user?.institutionId && !isEditing) {
       setError('No tienes una institución asignada para publicar esta vacante.');
       return;
     }
 
     try {
-      const res = await fetch(`${API_URL}/api/vacancies`, {
-        method: 'POST',
+      const url = isEditing ? `${API_URL}/api/vacancies/${editingId}` : `${API_URL}/api/vacancies`;
+      const method = isEditing ? 'PUT' : 'POST';
+      const body = isEditing ? form : { ...form, institutionId: user?.institutionId };
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, institutionId: user?.institutionId })
+        body: JSON.stringify(body)
       });
-      if (!res.ok) throw new Error('Error al crear vacante');
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || `Error al ${isEditing ? 'actualizar' : 'crear'} vacante`);
+      }
+      
       setForm({ 
         role: '', salary: '', location: '', modality: 'Presencial',
         experience: '', education: '', observations: '', language: '', 
@@ -133,17 +145,35 @@ const Vacantes = () => {
         skills: '', institutionId: ''
       });
       setShowAddModal(false);
+      setIsEditing(false);
+      setEditingId(null);
       fetchVacancies();
+      setSuccess(`Vacante ${isEditing ? 'actualizada' : 'creada'} exitosamente.`);
     } catch (err) {
       setError(err.message);
     }
   };
 
+  const handleEditClick = (v) => {
+    setForm({
+      role: v.role, salary: v.salary, location: v.location, modality: v.modality || 'Presencial',
+      experience: v.experience, education: v.education, observations: v.observations, language: v.language, 
+      activities: v.activities, confidential: v.confidential, age: v.age, gender: v.gender || 'Indistinto', 
+      skills: v.skills, institutionId: v.institutionId
+    });
+    setEditingId(v.id || v._id);
+    setIsEditing(true);
+    setShowAddModal(true);
+    setSelectedVacancy(null); // Close the detail modal
+  };
+
   const handleApplyCv = async (e) => {
     e.preventDefault();
+    if (submittingCv) return;
     setError(''); setSuccess('');
     if (!documentFile) return setError('Por favor adjunta el CV (PDF/Word).');
     
+    setSubmittingCv(true);
     const formData = new FormData();
     formData.append('name', applyForm.name);
     formData.append('email', applyForm.email);
@@ -167,6 +197,10 @@ const Vacantes = () => {
       });
       setSuccess('¡Candidato postulado exitosamente! La institución recibirá una notificación.');
       setApplyForm({ name: '', email: '' });
+      
+      // Clear file input UI
+      const fileInput = document.querySelector('input[type="file"]');
+      if (fileInput) fileInput.value = '';
       setDocumentFile(null);
       
       // Auto-scroll to top to see the success message
@@ -178,6 +212,8 @@ const Vacantes = () => {
       setSelectedVacancy(prev => ({...prev, cvCount: prev.cvCount + 1}));
     } catch (err) {
       setError(err.message);
+    } finally {
+      setSubmittingCv(false);
     }
   };
 
@@ -271,10 +307,15 @@ const Vacantes = () => {
           dueDate: requestCvForm.dueDate
         })
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al solicitar CV');
+      setSuccessMessage('¡Solicitud enviada con éxito!');
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#2563eb', '#10b981', '#ffffff']
+      });
+      setTimeout(() => setSuccessMessage(''), 3000);
       
-      setSuccess('¡Solicitud enviada a la institución!');
       setRequestCvForm({ targetInstitutionId: '', description: '' });
     } catch (err) {
       setError(err.message);
@@ -298,6 +339,16 @@ const Vacantes = () => {
 
   return (
     <div className="space-y-6">
+      {/* Success Notification Overlay */}
+      {successMessage && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none animate-in fade-in zoom-in duration-300">
+          <div className="bg-emerald-500 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border-2 border-emerald-400/50 scale-110">
+            <CheckCircle className="w-8 h-8 text-white" />
+            <span className="text-xl font-bold">{successMessage}</span>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Red de Vacantes</h1>
@@ -361,11 +412,11 @@ const Vacantes = () => {
 
       {/* Add Vacancy Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/50 backdrop-blur-sm p-4 pt-10 animate-fade-in" onClick={() => setShowAddModal(false)}>
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/50 backdrop-blur-sm p-4 pt-10 animate-fade-in" onClick={() => { setShowAddModal(false); setIsEditing(false); }}>
           <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden glass-panel" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-800">
-              <h2 className="text-xl font-bold dark:text-white">Publicar Nueva Vacante</h2>
-              <button type="button" onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+              <h2 className="text-xl font-bold dark:text-white">{isEditing ? 'Editar Vacante' : 'Publicar Nueva Vacante'}</h2>
+              <button type="button" onClick={() => { setShowAddModal(false); setIsEditing(false); }} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -384,15 +435,15 @@ const Vacantes = () => {
             <form onSubmit={handleAddVacancy} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium dark:text-slate-300 mb-1">Puesto Solicitado</label>
+                  <label className="block text-sm font-bold text-slate-800 dark:text-slate-100 mb-1">Puesto Solicitado</label>
                   <input type="text" value={form.role} onChange={e=>setForm({...form, role: e.target.value})} required className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium dark:text-slate-300 mb-1">Rango Salarial</label>
-                  <input type="text" value={form.salary} onChange={e=>setForm({...form, salary: e.target.value})} placeholder="Ej. $20,000 - $25,000 MXN" className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" />
+                  <label className="block text-sm font-bold text-slate-800 dark:text-slate-100 mb-1">Rango Salarial</label>
+                  <input type="text" value={form.salary} onChange={e=>setForm({...form, salary: e.target.value})} placeholder="Ej. Competitivo / $20k - $30k" className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium dark:text-slate-300 mb-1">Modalidad</label>
+                  <label className="block text-sm font-bold text-slate-800 dark:text-slate-100 mb-1">Modalidad</label>
                   <select value={form.modality} onChange={e=>setForm({...form, modality: e.target.value})} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white">
                     <option value="Presencial">Presencial</option>
                     <option value="Virtual">Virtual</option>
@@ -401,18 +452,18 @@ const Vacantes = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium dark:text-slate-300 mb-1">Ubicación Geográfica</label>
+                  <label className="block text-sm font-bold text-slate-800 dark:text-slate-100 mb-1">Ubicación Geográfica</label>
                   <input type="text" value={form.location} onChange={e=>setForm({...form, location: e.target.value})} placeholder="Ciudad, Estado..." className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" />
                 </div>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium dark:text-slate-300 mb-1">Rango de Edad Recomendado</label>
+                  <label className="block text-sm font-bold text-slate-800 dark:text-slate-100 mb-1">Rango de Edad Recomendado</label>
                   <input type="text" value={form.age} onChange={e=>setForm({...form, age: e.target.value})} placeholder="Ej. 25 a 35 años" className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium dark:text-slate-300 mb-1">Sexo Requerido</label>
+                  <label className="block text-sm font-bold text-slate-800 dark:text-slate-100 mb-1">Sexo Requerido</label>
                   <select value={form.gender} onChange={e=>setForm({...form, gender: e.target.value})} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white">
                     <option value="Indistinto">Indistinto</option>
                     <option value="Masculino">Masculino</option>
@@ -422,33 +473,33 @@ const Vacantes = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium dark:text-slate-300 mb-1">Habilidades Duras y Blandas</label>
+                <label className="block text-sm font-bold text-slate-800 dark:text-slate-100 mb-1">Experiencia Necesaria</label>
+                <textarea value={form.experience} onChange={e=>setForm({...form, experience: e.target.value})} rows="2" placeholder="Ej. 2 años en puestos similares..." className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white resize-none"></textarea>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-800 dark:text-slate-100 mb-1">Habilidades Duras y Blandas</label>
                 <textarea value={form.skills} onChange={e=>setForm({...form, skills: e.target.value})} rows="2" placeholder="Gestión de proyectos, Trabajo en equipo, Python..." className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white resize-none"></textarea>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium dark:text-slate-300 mb-1">Dominio de Idiomas</label>
+                  <label className="block text-sm font-bold text-slate-800 dark:text-slate-100 mb-1">Dominio de Idiomas</label>
                   <input type="text" value={form.language} onChange={e=>setForm({...form, language: e.target.value})} placeholder="Ej. Inglés B2" className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium dark:text-slate-300 mb-1">Escolaridad</label>
+                  <label className="block text-sm font-bold text-slate-800 dark:text-slate-100 mb-1">Escolaridad</label>
                   <input type="text" value={form.education} onChange={e=>setForm({...form, education: e.target.value})} placeholder="Ej. Licenciatura en Administración" className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium dark:text-slate-300 mb-1">Experiencia Necesaria</label>
-                <textarea value={form.experience} onChange={e=>setForm({...form, experience: e.target.value})} rows="2" placeholder="Ej. 2 años en puestos similares..." className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white resize-none"></textarea>
+                <label className="block text-sm font-bold text-slate-800 dark:text-slate-100 mb-1">Descripción de Actividades</label>
+                <textarea value={form.activities} onChange={e=>setForm({...form, activities: e.target.value})} rows="3" className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white resize-none"></textarea>
               </div>
 
               <div>
-                <label className="block text-sm font-medium dark:text-slate-300 mb-1">Descripción de Actividades</label>
-                <textarea value={form.activities} onChange={e=>setForm({...form, activities: e.target.value})} rows="3" className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white resize-none" required></textarea>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium dark:text-slate-300 mb-1">Observaciones Adicionales</label>
+                <label className="block text-sm font-bold text-slate-800 dark:text-slate-100 mb-1">Observaciones Adicionales</label>
                 <textarea value={form.observations} onChange={e=>setForm({...form, observations: e.target.value})} rows="2" placeholder="Cualquier otro detalle relevante..." className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white resize-none"></textarea>
               </div>
 
@@ -457,15 +508,17 @@ const Vacantes = () => {
                 <label htmlFor="confidentialCheck" className="text-sm font-bold text-red-700 dark:text-red-400 cursor-pointer select-none">Vacante Confidencial (Ocultar datos al exterior)</label>
               </div>
 
-                <div>
-                  <label className="block text-sm font-medium dark:text-slate-300 mb-1">Institución que Publica</label>
-                  <p className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-500 font-semibold border border-slate-300 dark:border-slate-700 rounded-xl cursor-not-allowed">
-                    {user?.institutionName || 'Tu institución (Asignación automática)'}
-                  </p>
-                </div>
+                {!isEditing && (
+                  <div>
+                    <label className="block text-sm font-bold text-slate-800 dark:text-slate-100 mb-1">Institución que Publica</label>
+                    <p className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-500 font-semibold border border-slate-300 dark:border-slate-700 rounded-xl cursor-not-allowed">
+                      {user?.institutionName || 'Tu institución (Asignación automática)'}
+                    </p>
+                  </div>
+                )}
 
               <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-medium shadow-lg shadow-blue-500/30 transition-all">
-                Publicar Vacante
+                {isEditing ? 'Actualizar Vacante' : 'Publicar Vacante'}
               </button>
             </form>
           </div>
@@ -491,6 +544,11 @@ const Vacantes = () => {
                 {user?.role === 'admin' && (
                   <button onClick={() => handleDeleteVacancy(selectedVacancy.id)} className="text-sm px-3 py-1.5 rounded-lg font-bold border outline-none cursor-pointer transition-colors bg-red-100 text-red-700 border-red-200 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-700">
                     Eliminar
+                  </button>
+                )}
+                {(user?.role === 'admin' || user?.institutionId === selectedVacancy.institutionId) && (
+                  <button onClick={() => handleEditClick(selectedVacancy)} className="text-sm px-3 py-1.5 rounded-lg font-bold border outline-none cursor-pointer transition-colors bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700">
+                    Editar
                   </button>
                 )}
                 {user?.role !== 'user' && (
@@ -526,6 +584,13 @@ const Vacantes = () => {
                 </div>
               </div>
 
+              <div>
+                <h4 className="text-sm font-bold text-slate-900 dark:text-slate-300 uppercase tracking-wider mb-2">Experiencia Necesaria</h4>
+                <div className="text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 whitespace-pre-line text-sm">
+                  {selectedVacancy.experience || 'No especificado.'}
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
                   <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Edad</h4>
@@ -552,12 +617,6 @@ const Vacantes = () => {
                 </div>
               </div>
 
-              <div>
-                <h4 className="text-sm font-bold text-slate-900 dark:text-slate-300 uppercase tracking-wider mb-2">Experiencia Necesaria</h4>
-                <div className="text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 whitespace-pre-line text-sm">
-                  {selectedVacancy.experience || 'No especificado.'}
-                </div>
-              </div>
 
               <div>
                 <h4 className="text-sm font-bold text-slate-900 dark:text-slate-300 uppercase tracking-wider mb-2">Descripción de Actividades</h4>
@@ -681,14 +740,27 @@ const Vacantes = () => {
                         <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Archivo CV (PDF/Word)</label>
                         <input type="file" onChange={e=>setDocumentFile(e.target.files[0])} accept=".pdf,.doc,.docx" className="w-full px-3 py-2 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 dark:text-white transition-colors cursor-pointer" required />
                       </div>
-                      <button type="submit" disabled={!user?.institutionId} className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-medium shadow-lg shadow-blue-500/30 transition-all">
-                        {user?.institutionId ? 'Subir y Postular Candidato' : 'Bloqueado: Requiere Institución Aportadora'}
+                      <button 
+                        type="submit" 
+                        disabled={!user?.institutionId || submittingCv} 
+                        className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-medium shadow-lg shadow-blue-500/30 transition-all flex items-center justify-center gap-2"
+                      >
+                        {submittingCv ? (
+                          <>
+                            <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
+                            <span>Postulando...</span>
+                          </>
+                        ) : user?.institutionId ? (
+                          'Subir y Postular Candidato'
+                        ) : (
+                          'Bloqueado: Requiere Institución Aportadora'
+                        )}
                       </button>
                     </form>
                   </div>
 
                   {/* Solicitar CV a Otra Institución */}
-                  {selectedVacancy.institutionId === user?.institutionId && (
+                  {user?.role === 'admin' && (
                     <div className="mt-8 border-t border-slate-200 dark:border-slate-700 pt-6 pb-2">
                       <div className="mb-4">
                         <h4 className="text-lg font-bold text-slate-900 dark:text-white">Solicitar CV a Otra Institución</h4>
