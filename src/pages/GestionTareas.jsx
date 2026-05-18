@@ -341,6 +341,15 @@ const GestionTareas = () => {
                     </div>
                   </div>
                 ))}
+                {tasks.length === 0 && (
+                  <div className="glass-panel p-12 rounded-2xl text-center flex flex-col items-center gap-3">
+                    <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                      <CheckCircle className="w-8 h-8 text-slate-300 dark:text-slate-600" />
+                    </div>
+                    <h4 className="text-lg font-bold text-slate-700 dark:text-slate-300">Sin tareas pendientes</h4>
+                    <p className="text-sm text-slate-400 dark:text-slate-500 max-w-xs">No hay tareas asignadas en este momento. Usa el botón <span className="font-semibold text-blue-500">+ Asignar Tarea</span> para crear una nueva.</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
