@@ -366,6 +366,21 @@ const Vacantes = () => {
 
       {loading ? (
         <div className="text-center py-12"><div className="w-8 h-8 rounded-full border-4 border-slate-200 border-t-blue-600 animate-spin mx-auto"></div></div>
+      ) : vacancies.length === 0 ? (
+        <div className="glass-panel p-16 rounded-2xl text-center flex flex-col items-center gap-4">
+          <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+            <Briefcase className="w-10 h-10 text-slate-300 dark:text-slate-600" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-slate-700 dark:text-slate-300 mb-1">No hay vacantes publicadas</h3>
+            <p className="text-sm text-slate-400 dark:text-slate-500 max-w-sm mx-auto">
+              Aún no se han publicado vacantes en la red. 
+              {(user?.role === 'management' || user?.role === 'admin') && (
+                <> Usa el botón <span className="font-semibold text-blue-500">+ Nueva Vacante</span> para publicar la primera.</>
+              )}
+            </p>
+          </div>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {vacancies.map((v) => (
