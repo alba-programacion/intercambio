@@ -12,6 +12,7 @@ const taskSchema = new mongoose.Schema({
   description: { type: String },
   status: { type: String, enum: ['PENDING', 'COMPLETED', 'EXPIRED'], default: 'PENDING' },
   dueDate: { type: Date, required: true },
+  expiresAt: { type: Date },
 }, { timestamps: true });
 
 // Dynamic fine calculation

@@ -223,7 +223,7 @@ const Dashboard = () => {
         
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
            <div>
-             <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2"><AlertCircle className="text-red-500 w-5 h-5"/> Reporte de Deuda de CVs</h3>
+             <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2"><AlertCircle className="text-red-500 w-5 h-5"/> Reporte de CVs Pendientes</h3>
              <p className="text-sm text-slate-500 font-medium">Instituciones que han recibido solicitudes pero aún no han aportado perfiles.</p>
            </div>
            <div className="px-4 py-2 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400 rounded-xl text-xs font-bold flex items-center gap-2 animate-pulse">
@@ -259,7 +259,7 @@ const Dashboard = () => {
                   <td colSpan="3" className="py-12 text-center">
                     <div className="space-y-2">
                        <p className="text-xl">☀️</p>
-                       <p className="text-sm font-bold text-slate-400">No hay deudas activas. Todo el talento ha sido entregado a tiempo.</p>
+                       <p className="text-sm font-bold text-slate-400">No hay CVs pendientes. Todo el talento ha sido entregado a tiempo.</p>
                     </div>
                   </td>
                 </tr>

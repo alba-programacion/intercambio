@@ -11,6 +11,7 @@ import CVs from './pages/CVs';
 import Tareas from './pages/Tareas';
 import Instituciones from './pages/Instituciones';
 import Directorio from './pages/Directorio';
+import GestionTareas from './pages/GestionTareas';
 
 // Auth Context
 const AuthContext = createContext(null);
@@ -76,7 +77,7 @@ function App() {
           <Route path="/vacantes" element={<ProtectedRoute><Vacantes /></ProtectedRoute>} />
           <Route path="/colaboracion" element={<ProtectedRoute><Colaboracion /></ProtectedRoute>} />
           <Route path="/cvs" element={<ProtectedRoute><CVs /></ProtectedRoute>} />
-          <Route path="/tareas" element={<ProtectedRoute><Tareas /></ProtectedRoute>} />
+          <Route path="/gestion-tareas" element={<ProtectedRoute><GestionTareas /></ProtectedRoute>} />
           <Route path="/instituciones" element={<ProtectedRoute><Instituciones /></ProtectedRoute>} />
           <Route path="/directorio" element={<ProtectedRoute><Directorio /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../App';
 import { FileText, Plus } from 'lucide-react';
 import { API_URL } from '../config';
+import confetti from 'canvas-confetti';
 
 const REJECTION_CODES = {
   'A': 'NO CUMPLE CON EL PERFIL DE LA VACANTE',
@@ -59,6 +60,12 @@ const CVs = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al guardar');
       setSuccess('CV registrado correctamente. Ahora está "Disponible".');
+      confetti({
+        particleCount: 120,
+        spread: 75,
+        origin: { y: 0.6 },
+        colors: ['#2563eb', '#10b981', '#ffffff']
+      });
       setForm({ name: '', email: '' });
       setFile(null);
       const fileInput = document.getElementById('cv-file-input');
@@ -81,7 +88,7 @@ const CVs = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Gestión de CVs</h1>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Repositorio de candidatos</h1>
         <p className="text-slate-500 dark:text-slate-400">Carga manual y visualización de currículums aportados por tu institución.</p>
       </div>
 

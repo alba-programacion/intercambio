@@ -5,7 +5,9 @@ const vacancySchema = new mongoose.Schema({
   salary: { type: String },
   location: { type: String },
   modality: { type: String, default: 'presencial' }, // virtual, presencial, híbrida, medio tiempo
-  knowledgeTest: { type: String },
+  experience: { type: String },
+  education: { type: String },
+  observations: { type: String },
   language: { type: String },
   activities: { type: String },
   confidential: { type: Boolean, default: false },

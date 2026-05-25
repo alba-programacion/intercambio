@@ -13,6 +13,8 @@ const CV = require('./models/CV');
 const Task = require('./models/Task');
 const Notification = require('./models/Notification');
 const Contact = require('./models/Contact');
+const Fine = require('./models/Fine');
+const { sendEmail } = require('./utils/mailer');
 
 const app = express();
 
@@ -49,6 +51,20 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/talent-co
     
     // Ensure TTL Index for auto-deletion of rejected CVs
     await CV.collection.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+    // Ensure TTL Index for auto-deletion of completed tasks after 30 days
+    await Task.collection.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+    // Manual cleanup of completed tasks that are older than 30 days and lack expiresAt
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const deleteResult = await Task.deleteMany({
+      status: 'COMPLETED',
+      $or: [
+        { expiresAt: { $lte: new Date() } },
+        { updatedAt: { $lte: thirtyDaysAgo }, expiresAt: { $exists: false } }
+      ]
+    });
+    console.log(`🧹 Cleaned up ${deleteResult.deletedCount} completed tasks older than 30 days`);
     
     console.log('🔄 Applied migrations and verified indices');
   })
@@ -56,6 +72,10 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/talent-co
 
 app.use(cors());
 app.use(express.json());
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const MOCK_USERS = [
@@ -289,7 +309,8 @@ app.get('/api/vacancies', async (req, res) => {
       institutionId: v.institutionId?._id || v.institutionId,
       institutionName: v.institutionId?.name || 'Desconocida',
       role: v.role, salary: v.salary,
-      location: v.location, modality: v.modality, knowledgeTest: v.knowledgeTest,
+      location: v.location, modality: v.modality, 
+      experience: v.experience, education: v.education, observations: v.observations,
       language: v.language, activities: v.activities, confidential: v.confidential,
       age: v.age, gender: v.gender, skills: v.skills,
       status: v.status, cvCount, date: v.createdAt
@@ -312,6 +333,21 @@ app.patch('/api/vacancies/:id/status', async (req, res) => {
     await v.save();
     res.json(v);
   } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.put('/api/vacancies/:id', async (req, res) => {
+  try {
+    console.log(`[UPDATE VACANCY] ID: ${req.params.id}`, req.body);
+    const v = await Vacancy.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!v) {
+      console.log(`[UPDATE FAILED] Vacancy not found: ${req.params.id}`);
+      return res.status(404).json({ error: 'Vacante no encontrada' });
+    }
+    res.json(v);
+  } catch (e) { 
+    console.error(`[UPDATE ERROR]`, e);
+    res.status(400).json({ error: e.message }); 
+  }
 });
 
 app.delete('/api/vacancies/:id', async (req, res) => {
@@ -344,6 +380,29 @@ app.post('/api/cvs', upload.single('document'), async (req, res) => {
       sourceInstitutionId
     });
     await newCv.save();
+
+    // Notify admins/managers of new candidate in repository
+    const admins = await User.find({ role: 'admin' });
+    const manager = await User.findOne({ institutionId: sourceInstitutionId, role: 'management' });
+    const recipients = [...new Set([...admins.map(a => a.email), manager?.email].filter(Boolean))];
+    
+    for (const recipient of recipients) {
+      sendEmail(
+        recipient,
+        'Nuevo candidato en el repositorio',
+        `Se ha subido un nuevo candidato (${name}) al repositorio por la institución ${sourceInstitutionId}.`,
+        `<p>Se ha subido un nuevo candidato <strong>${name}</strong> al repositorio por la institución <strong>${sourceInstitutionId}</strong>.</p>`
+      ).catch(err => console.error('Error sending upload notification email:', err));
+    }
+
+    // --- NOTIFICATION FOR ADMINS ---
+    await Notification.create({
+      targetInstitutionId: 'global', // Global/Admin
+      message: `¡Nuevo Talento! ${sourceInstitutionId} ha subido a ${name} al repositorio compartido.`,
+      type: 'INFO',
+      link: '/cvs'
+    });
+
     res.status(201).json(newCv);
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
@@ -364,14 +423,27 @@ app.post('/api/cvs/vacancy', upload.single('document'), async (req, res) => {
     });
 
     // --- NOTIFICATION TARGETING ---
-    const vacancyInfo = await Vacancy.findById(targetVacancyId);
-    if (vacancyInfo && vacancyInfo.institutionId && vacancyInfo.institutionId.toString() !== sourceInstitutionId.toString()) {
+    // Only notify the vacancy-owning institution if the applicant is from a different institution
+    const vacancyInfo = await Vacancy.findById(targetVacancyId).populate('institutionId');
+    if (vacancyInfo && vacancyInfo.institutionId && vacancyInfo.institutionId._id.toString() !== sourceInstitutionId.toString()) {
+      const message = `¡Nueva Postulación! ${sourceInstitutionId} ha enviado a ${name} para tu vacante de ${vacancyInfo.role}.`;
       await Notification.create({
-        targetInstitutionId: vacancyInfo.institutionId,
-        message: `¡Nueva Postulación! ${sourceInstitutionId} ha enviado a ${name} para tu vacante de ${vacancyInfo.role}.`,
+        targetInstitutionId: vacancyInfo.institutionId._id,
+        message,
         type: 'SUCCESS',
         link: '/vacantes'
       });
+
+      // Send Email to Vacancy Owner (Manager of the institution)
+      const ownerManager = await User.findOne({ institutionId: vacancyInfo.institutionId._id, role: 'management' });
+      if (ownerManager) {
+        sendEmail(
+          ownerManager.email,
+          'Nueva postulación a tu vacante',
+          message,
+          `<p>${message}</p><p>Puedes ver los detalles en la plataforma.</p>`
+        ).catch(err => console.error('Error sending vacancy apply notification email:', err));
+      }
     }
 
     res.status(201).json({ cv });
@@ -544,15 +616,90 @@ app.post('/api/tasks/request-cv', async (req, res) => {
         type: 'INFO',
         link: '/tareas'
       });
+
+      // Send Email to Manager
+      sendEmail(
+        manager.email,
+        'Nueva Solicitud de CVs (SLA)',
+        `Te han solicitado CVs para la vacante "${vacancyInfo?.role || 'general'}".`,
+        `<p>La institución ${senderInstitutionName} te ha solicitado CVs para la vacante <strong>"${vacancyInfo?.role || 'general'}"</strong>.</p><p>Fecha límite: ${finalDueDate.toLocaleDateString()}</p>`
+      ).catch(err => console.error('Error sending SLA request email:', err));
     } catch(err) { console.error('Error creating task notification', err); }
 
     res.status(201).json(task);
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
+app.post('/api/tasks/:id/fulfill-cv', upload.single('document'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, senderEmail, sourceInstitutionId } = req.body;
+    
+    const task = await Task.findById(id);
+    if (!task) return res.status(404).json({ error: 'Tarea no encontrada' });
+
+    // 1. Create the CV
+    const cv = await CV.create({
+      name,
+      email,
+      targetVacancyId: task.targetVacancyId,
+      sourceInstitutionId,
+      document: req.file.filename,
+      status: 'En trámite'
+    });
+
+    // 2. Mark Task as COMPLETED
+    task.status = 'COMPLETED';
+    task.expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    await task.save();
+
+    // 3. Notify requester
+    await Notification.create({
+      targetInstitutionId: task.sourceInstitutionId || 'ADMIN', // Or find requester's inst
+      message: `¡CV Recibido! Una institución ha enviado el perfil de "${name}" para tu solicitud.`,
+      type: 'SUCCESS',
+      link: '/cvs'
+    });
+
+    // 4. Create a tracking task for the requester to review
+    await Task.create({
+      type: 'REVIEW_CV',
+      senderEmail: senderEmail,
+      targetEmail: task.senderEmail,
+      cvId: cv._id,
+      targetVacancyId: task.targetVacancyId,
+      description: 'Institución envío cv',
+      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
+    });
+
+    res.json({ message: 'CV enviado y tarea completada', cv, task });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.patch('/api/tasks/:id/complete', async (req, res) => {
+  try {
+    const task = await Task.findByIdAndUpdate(
+      req.params.id, 
+      { 
+        status: 'COMPLETED',
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      }, 
+      { new: true }
+    );
+    res.json(task);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
 app.get('/api/tasks', async (req, res) => {
-  const { email } = req.query;
-  const q = email ? { $or: [{ targetEmail: email }, { senderEmail: email }] } : {};
+  const { email, institutionId } = req.query;
+  console.log(`[GET TASKS] Query Params - Email: ${email}, InstId: ${institutionId}`);
+  let q = {};
+  if (institutionId) {
+    q = { $or: [{ targetInstitutionId: institutionId }, { sourceInstitutionId: institutionId }] };
+  } else if (email) {
+    q = { $or: [{ targetEmail: email }, { senderEmail: email }] };
+  }
+  
   const tasks = await Task.find(q)
     .populate({ 
       path: 'cvId', 
@@ -621,49 +768,44 @@ app.post('/api/tasks/:id/fulfill-cv', upload.single('document'), async (req, res
       }]
     });
 
-    // Generamos la tarea de regreso indicando la resolución al solicitante
-    await Task.create({
-      type: 'REVIEW_CV',
-      senderEmail: senderEmail || 'sistema@talent.com',
-      targetEmail: targetEmail || 'admin@system.com',
-      cvId: cv._id,
-      sourceInstitutionId, // Store source
-      targetVacancyId: task.targetVacancyId,
-      description: 'Institución envío cv',
-      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
-    });
-
     task.status = 'COMPLETED';
     await task.save();
-
     // --- NOTIFICATION TARGETING ---
-    if (targetInstId && targetInstId.toString() !== sourceInstitutionId.toString()) {
-      await Notification.create({
-        targetInstitutionId: targetInstId,
+    // Si no hay targetInstId, es para el admin global. Si hay, verificamos que no sea el mismo que envía.
+    const isSelf = targetInstId && sourceInstitutionId && targetInstId.toString() === sourceInstitutionId.toString();
+    
+    if (!isSelf) {
+      const n1 = await Notification.create({
+        targetInstitutionId: targetInstId || 'global',
         message: `¡SLA Cumplido! ${sourceInstitutionId} te ha enviado un CV (${name}) que solicitaste.`,
         type: 'SUCCESS',
-        link: '/tareas'
+        link: '/gestion-tareas'
       });
+      console.log(`[NOTIF CREATED] Requester: ${targetInstId || 'global'} - ${n1.message}`);
     }
-    await Notification.create({
+
+    const n2 = await Notification.create({
       targetInstitutionId: sourceInstitutionId,
       message: `Has enviado el CV de ${name} exitosamente a ${targetInstId || 'la institución destino'}.`,
       type: 'INFO',
-      link: '/tareas'
+      link: '/gestion-tareas'
     });
+    console.log(`[NOTIF CREATED] Sender: ${sourceInstitutionId} - ${n2.message}`);
 
     res.status(201).json({ cv, task });
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-// --- USERS API (for Institutions Admin) ---
+// --- USERS API ---
 app.get('/api/users', async (req, res) => {
-  const users = await User.find({}, '-password').populate('institutionId');
-  res.json(users);
+  try { res.json(await User.find().populate('institutionId')); }
+  catch (e) { res.status(400).json({ error: e.message }); }
 });
+
 app.patch('/api/users/:id', async (req, res) => {
   try {
     const u = await User.findById(req.params.id);
+    if (!u) return res.status(404).json({ error: 'Usuario no encontrado' });
     if (req.body.role) u.role = req.body.role;
     if (req.body.institutionId !== undefined) {
       u.institutionId = req.body.institutionId === '' ? null : req.body.institutionId;
@@ -699,7 +841,24 @@ app.delete('/api/contacts/:id', async (req, res) => {
 // --- NOTIFICATIONS API ---
 app.get('/api/notifications/:institutionId', async (req, res) => {
   try {
-    const notifs = await Notification.find({ targetInstitutionId: req.params.institutionId }).sort({ createdAt: -1 }).limit(30);
+    const { institutionId } = req.params;
+    console.log(`[GET NOTIFICATIONS] Query InstitutionId: ${institutionId}`);
+    
+    let q = {};
+    if (institutionId === 'global' || institutionId === 'null' || institutionId === 'undefined' || !institutionId) {
+      // Admin global: show only global/admin notifications
+      q = { $or: [
+        { targetInstitutionId: null }, 
+        { targetInstitutionId: '' }, 
+        { targetInstitutionId: 'global' }
+      ] };
+    } else {
+      // Institution user: show ONLY notifications targeted to their own institution
+      // (no global admin notifications — those are not meant for them)
+      q = { targetInstitutionId: institutionId };
+    }
+      
+    const notifs = await Notification.find(q).sort({ createdAt: -1 }).limit(30);
     res.json(notifs);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -715,6 +874,31 @@ app.patch('/api/notifications/:id/read', async (req, res) => {
     });
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// --- FINES API ---
+app.get('/api/fines', async (req, res) => {
+  try {
+    const { institutionId } = req.query;
+    console.log(`[GET FINES] Query InstitutionId: ${institutionId}`);
+    const q = institutionId ? { institutionId } : {};
+    const fines = await Fine.find(q).populate('institutionId').sort({ createdAt: -1 });
+    res.json(fines);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/fines', async (req, res) => {
+  try {
+    const fine = await Fine.create(req.body);
+    res.status(201).json(fine);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.patch('/api/fines/:id/status', async (req, res) => {
+  try {
+    const fine = await Fine.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true });
+    res.json(fine);
+  } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
 app.get('/', (req, res) => {

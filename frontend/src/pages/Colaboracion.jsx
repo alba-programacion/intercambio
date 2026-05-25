@@ -17,6 +17,7 @@ const Colaboracion = () => {
   const [documentFile, setDocumentFile] = useState(null);
   const [collabError, setCollabError] = useState('');
   const [collabSuccess, setCollabSuccess] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   
   const getInstName = (id) => {
     if (!id) return null;
@@ -58,9 +59,11 @@ const Colaboracion = () => {
 
   const handleShareSla = async (e) => {
     e.preventDefault();
+    if (submitting) return;
     setCollabError(''); setCollabSuccess('');
     if (!documentFile) return setCollabError('Por favor adjunta el CV (PDF/Word).');
     
+    setSubmitting(true);
     const formData = new FormData();
     formData.append('name', applyForm.name);
     formData.append('description', applyForm.description);
@@ -86,6 +89,8 @@ const Colaboracion = () => {
       fetchData(); 
     } catch (err) {
       setCollabError(err.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -212,8 +217,22 @@ const Colaboracion = () => {
                     <input id="collab-file" type="file" onChange={e=>setDocumentFile(e.target.files[0])} accept=".pdf,.doc,.docx" className="w-full px-4 py-2 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 dark:text-white transition-colors cursor-pointer" required />
                   </div>
                   <div className="pt-2">
-                    <button type="submit" disabled={!user?.institutionId} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-medium shadow-lg shadow-indigo-500/30 transition-all text-lg flex justify-center items-center gap-2">
-                      <Send className="w-5 h-5"/> {user?.institutionId ? 'Enviar y Generar Trámite' : 'Envío Bloqueado (Sin Institución)'}
+                    <button 
+                      type="submit" 
+                      disabled={!user?.institutionId || submitting} 
+                      className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-medium shadow-lg shadow-indigo-500/30 transition-all text-lg flex justify-center items-center gap-2"
+                    >
+                      {submitting ? (
+                        <>
+                          <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
+                          <span>Enviando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-5 h-5"/>
+                          <span>{user?.institutionId ? 'Enviar y Generar Trámite' : 'Envío Bloqueado (Sin Institución)'}</span>
+                        </>
+                      )}
                     </button>
                   </div>
                  </form>
