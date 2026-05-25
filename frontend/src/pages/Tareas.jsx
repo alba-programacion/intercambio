@@ -49,36 +49,52 @@ const Tareas = () => {
     e.preventDefault();
     setError(''); setSuccess('');
     
-    try {
-      const isReceiptOnly = selectedTask.description === 'Institución rechazó el CV' || selectedTask.description === 'Institución aceptó el CV' || selectedTask.description === 'Institución envío cv';
-      if (!isReceiptOnly) {
-        if (!selectedVacancyId) {
-           setError('Debes seleccionar una opción en el menú de vacantes.');
-           return;
+    const taskToResolve = selectedTask;
+    const isReceiptOnly = taskToResolve.description === 'Institución rechazó el CV' || taskToResolve.description === 'Institución aceptó el CV' || taskToResolve.description === 'Institución envío cv';
+    if (!isReceiptOnly && !selectedVacancyId) {
+      setError('Debes seleccionar una opción en el menú de vacantes.');
+      return;
+    }
+
+    const actualOutcome = selectedVacancyId === 'NO_VACANCY' ? 'Rechazado' : 'Aprobado';
+    const actualReason = selectedVacancyId === 'NO_VACANCY' ? 'No hay vacante para este perfil' : '';
+    const targetVacancyParam = actualOutcome === 'Aprobado' ? selectedVacancyId : null;
+
+    // Trigger success UI and close modal immediately!
+    setSuccessMessage('¡Tarea resuelta exitosamente!');
+    confetti({
+      particleCount: 120,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#2563eb', '#10b981', '#ffffff']
+    });
+    setTimeout(() => setSuccessMessage(''), 3000);
+    setSelectedTask(null);
+
+    // Execute API requests in background
+    const runBackgroundResolve = async () => {
+      try {
+        if (!isReceiptOnly) {
+          const resCv = await fetch(`${API_URL}/api/cvs/${taskToResolve.cvId._id}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: actualOutcome, rejectedReason: actualReason, rejectedBy: user.email, targetVacancyId: targetVacancyParam })
+          });
+          if(!resCv.ok) throw new Error('Error al actualizar status del CV');
         }
-        const actualOutcome = selectedVacancyId === 'NO_VACANCY' ? 'Rechazado' : 'Aprobado';
-        const actualReason = selectedVacancyId === 'NO_VACANCY' ? 'No hay vacante para este perfil' : '';
         
-        // 1. Update CV Status
-        const resCv = await fetch(`${API_URL}/api/cvs/${selectedTask.cvId._id}/status`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: actualOutcome, rejectedReason: actualReason, rejectedBy: user.email, targetVacancyId: actualOutcome === 'Aprobado' ? selectedVacancyId : null })
+        const resTask = await fetch(`${API_URL}/api/tasks/${taskToResolve.id}/complete`, {
+          method: 'PATCH'
         });
-        if(!resCv.ok) throw new Error('Error al actualizar status del CV');
+        if(!resTask.ok) throw new Error('Error al completar la tarea');
+        
+        fetchTasks();
+      } catch (err) {
+        console.error("Background resolve error:", err);
       }
-      
-      // 2. Complete Task
-      const resTask = await fetch(`${API_URL}/api/tasks/${selectedTask.id}/complete`, {
-        method: 'PATCH'
-      });
-      if(!resTask.ok) throw new Error('Error al completar la tarea');
-      
-      setSuccessMessage('¡Tarea resuelta exitosamente!');
-      setTimeout(() => setSuccessMessage(''), 3000);
-      setSelectedTask(null);
-      fetchTasks();
-    } catch(err) { setError(err.message); }
+    };
+    
+    runBackgroundResolve();
   };
 
   const handleFulfillCv = async (e) => {
@@ -95,33 +111,41 @@ const Tareas = () => {
     if (user.institutionId) formData.append('sourceInstitutionId', user.institutionId);
     formData.append('document', documentFile);
 
-    try {
-      const res = await fetch(`${API_URL}/api/tasks/${selectedTask.id}/fulfill-cv`, {
-        method: 'POST',
-        body: formData
+    const taskToResolve = selectedTask;
+    setSelectedTask(null);
+    setApplyForm({ name: '', email: '' });
+    
+    // Clear file input UI
+    const fileInput = document.querySelector('input[type="file"]');
+    if (fileInput) fileInput.value = '';
+    setDocumentFile(null);
+
+    // Trigger success UI and confetti immediately!
+    setSuccessMessage('¡CV enviado exitosamente!');
+    confetti({
+      particleCount: 150,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#2563eb', '#10b981', '#ffffff']
+    });
+    setTimeout(() => setSuccessMessage(''), 3000);
+
+    // Execute in the background
+    fetch(`${API_URL}/api/tasks/${taskToResolve.id}/fulfill-cv`, {
+      method: 'POST',
+      body: formData
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al enviar CV');
+        fetchTasks();
+      })
+      .catch((err) => {
+        console.error("Background task fulfillment error:", err);
+      })
+      .finally(() => {
+        setSubmittingCv(false);
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al enviar CV');
-      
-      setSuccessMessage('¡CV enviado exitosamente!');
-      confetti({
-        particleCount: 150,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#2563eb', '#10b981', '#ffffff']
-      });
-      setTimeout(() => setSuccessMessage(''), 3000);
-      
-      setApplyForm({ name: '', email: '' });
-      
-      // Clear file input UI
-      const fileInput = document.querySelector('input[type="file"]');
-      if (fileInput) fileInput.value = '';
-      setDocumentFile(null);
-      setSelectedTask(null);
-      fetchTasks(); 
-    } catch(err) { setError(err.message); }
-    finally { setSubmittingCv(false); }
   };
 
   const validTasks = tasks.filter(t => !(t.senderEmail === user?.email && (t.type === 'REQUEST_CVS' || t.description === 'Institución rechazó el CV' || t.description === 'Institución aceptó el CV')));

@@ -154,40 +154,51 @@ const GestionTareas = () => {
     if (user.institutionId) formData.append('sourceInstitutionId', user.institutionId);
     formData.append('document', documentFile);
 
-    try {
-      const res = await fetch(`${API_URL}/api/tasks/${selectedTask.id}/fulfill-cv`, {
-        method: 'POST',
-        body: formData
-      });
-      if (res.ok) {
-        setSelectedTask(null);
-        fetchData();
-        setApplyForm({ name: '', email: '' });
-        
-        // Clear file input UI
-        const fileInput = document.querySelector('input[type="file"]');
-        if (fileInput) fileInput.value = '';
-        setDocumentFile(null);
-        showSuccessNotification("¡Solicitud enviada con éxito!");
-        if (typeof confetti === 'function') {
-          confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+    const taskToResolve = selectedTask;
+    setSelectedTask(null);
+    setApplyForm({ name: '', email: '' });
+    
+    // Clear file input UI
+    const fileInput = document.querySelector('input[type="file"]');
+    if (fileInput) fileInput.value = '';
+    setDocumentFile(null);
+    
+    showSuccessNotification("¡Solicitud enviada con éxito!");
+    if (typeof confetti === 'function') {
+      confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+    }
+
+    // Execute in background
+    fetch(`${API_URL}/api/tasks/${taskToResolve.id}/fulfill-cv`, {
+      method: 'POST',
+      body: formData
+    })
+      .then(async (res) => {
+        if (res.ok) {
+          fetchData();
+        } else {
+          const err = await res.json();
+          console.error("Task fulfillment error:", err.error);
         }
-      } else {
-        const err = await res.json();
-        alert(err.error || "Error al enviar CV");
-      }
-    } catch(err) { alert("Error de conexión"); }
-    finally { setResolving(false); }
+      })
+      .catch(err => console.error("Network error fulfilling task:", err))
+      .finally(() => {
+        setResolving(false);
+      });
   };
 
   const handleCompleteTask = async (id) => {
-    try {
-      const res = await fetch(`${API_URL}/api/tasks/${id}/complete`, { method: 'PATCH' });
-      if (res.ok) {
-        fetchData();
-        showSuccessNotification("Tarea completada");
-      }
-    } catch(e) { console.error(e); }
+    showSuccessNotification("Tarea completada");
+    if (typeof confetti === 'function') {
+      confetti({ particleCount: 100, spread: 60, origin: { y: 0.6 } });
+    }
+    
+    // Execute in background
+    fetch(`${API_URL}/api/tasks/${id}/complete`, { method: 'PATCH' })
+      .then((res) => {
+        if (res.ok) fetchData();
+      })
+      .catch(e => console.error("Background task completion error:", e));
   };
 
   const showSuccessNotification = (msg) => {
@@ -314,11 +325,6 @@ const GestionTareas = () => {
             <div className="space-y-4">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-lg font-bold dark:text-white">Asignación de Tareas</h3>
-                {user?.role === 'admin' && (
-                  <button onClick={() => setShowTaskModal(true)} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2">
-                    <Plus className="w-4 h-4" /> Asignar Tarea
-                  </button>
-                )}
               </div>
 
               {/* Sub-tabs pendientes / resueltas */}
@@ -386,7 +392,7 @@ const GestionTareas = () => {
                     </h4>
                     <p className="text-sm text-slate-400 dark:text-slate-500 max-w-xs">
                       {taskTab === 'pendientes'
-                        ? <>No hay tareas pendientes. Usa el botón <span className="font-semibold text-blue-500">+ Asignar Tarea</span> para crear una nueva.</>
+                        ? 'No hay tareas pendientes en este momento.'
                         : 'No hay tareas resueltas en el último mes. Se eliminan automáticamente después de 30 días.'}
                     </p>
                   </div>

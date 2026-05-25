@@ -630,51 +630,7 @@ app.post('/api/tasks/request-cv', async (req, res) => {
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-app.post('/api/tasks/:id/fulfill-cv', upload.single('document'), async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { name, email, senderEmail, sourceInstitutionId } = req.body;
-    
-    const task = await Task.findById(id);
-    if (!task) return res.status(404).json({ error: 'Tarea no encontrada' });
-
-    // 1. Create the CV
-    const cv = await CV.create({
-      name,
-      email,
-      targetVacancyId: task.targetVacancyId,
-      sourceInstitutionId,
-      document: req.file.filename,
-      status: 'En trámite'
-    });
-
-    // 2. Mark Task as COMPLETED
-    task.status = 'COMPLETED';
-    task.expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-    await task.save();
-
-    // 3. Notify requester
-    await Notification.create({
-      targetInstitutionId: task.sourceInstitutionId || 'ADMIN', // Or find requester's inst
-      message: `¡CV Recibido! Una institución ha enviado el perfil de "${name}" para tu solicitud.`,
-      type: 'SUCCESS',
-      link: '/cvs'
-    });
-
-    // 4. Create a tracking task for the requester to review
-    await Task.create({
-      type: 'REVIEW_CV',
-      senderEmail: senderEmail,
-      targetEmail: task.senderEmail,
-      cvId: cv._id,
-      targetVacancyId: task.targetVacancyId,
-      description: 'Institución envío cv',
-      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
-    });
-
-    res.json({ message: 'CV enviado y tarea completada', cv, task });
-  } catch (e) { res.status(400).json({ error: e.message }); }
-});
+// Route app.post('/api/tasks/:id/fulfill-cv') is defined below with complete inter-institutional routing logic.
 
 app.patch('/api/tasks/:id/complete', async (req, res) => {
   try {
@@ -710,14 +666,7 @@ app.get('/api/tasks', async (req, res) => {
   res.json(tasks.map(t => ({ ...t.toObject(), id: t._id, fine: t.fine })));
 });
 
-app.patch('/api/tasks/:id/complete', async (req, res) => {
-  try {
-    const t = await Task.findById(req.params.id);
-    t.status = 'COMPLETED';
-    await t.save();
-    res.json(t);
-  } catch (e) { res.status(400).json({ error: e.message }); }
-});
+// Route app.patch('/api/tasks/:id/complete') is defined above with TTL expiresAt logic.
 
 app.post('/api/tasks/:id/fulfill-cv', upload.single('document'), async (req, res) => {
   try {
@@ -769,6 +718,7 @@ app.post('/api/tasks/:id/fulfill-cv', upload.single('document'), async (req, res
     });
 
     task.status = 'COMPLETED';
+    task.expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     await task.save();
     // --- NOTIFICATION TARGETING ---
     // Si no hay targetInstId, es para el admin global. Si hay, verificamos que no sea el mismo que envía.
