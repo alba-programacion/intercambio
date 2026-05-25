@@ -52,28 +52,32 @@ const CVs = () => {
     formData.append('sourceInstitutionId', user.institutionId);
     formData.append('document', file);
 
-    try {
-      const res = await fetch(`${API_URL}/api/cvs`, {
-        method: 'POST',
-        body: formData
+    // Trigger success UI and confetti immediately!
+    setSuccess('CV registrado correctamente. Ahora está "Disponible".');
+    confetti({
+      particleCount: 120,
+      spread: 75,
+      origin: { y: 0.6 },
+      colors: ['#2563eb', '#10b981', '#ffffff']
+    });
+    setForm({ name: '', email: '' });
+    setFile(null);
+    const fileInput = document.getElementById('cv-file-input');
+    if (fileInput) fileInput.value = '';
+
+    // Execute in the background
+    fetch(`${API_URL}/api/cvs`, {
+      method: 'POST',
+      body: formData
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al guardar');
+        fetchCvs();
+      })
+      .catch((err) => {
+        console.error("Background CV registration error:", err);
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al guardar');
-      setSuccess('CV registrado correctamente. Ahora está "Disponible".');
-      confetti({
-        particleCount: 120,
-        spread: 75,
-        origin: { y: 0.6 },
-        colors: ['#2563eb', '#10b981', '#ffffff']
-      });
-      setForm({ name: '', email: '' });
-      setFile(null);
-      const fileInput = document.getElementById('cv-file-input');
-      if (fileInput) fileInput.value = '';
-      fetchCvs();
-    } catch (err) {
-      setError(err.message);
-    }
   };
 
   const handleDeleteCv = async (cvId) => {

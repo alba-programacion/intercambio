@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../App';
 import { Send, Inbox, AlertCircle, CheckCircle2, XCircle, Clock, FileText } from 'lucide-react';
 import { API_URL } from '../config';
+import confetti from 'canvas-confetti';
 
 const Colaboracion = () => {
   const { user } = useAuth();
@@ -73,25 +74,36 @@ const Colaboracion = () => {
     if (user.institutionId) formData.append('sourceInstitutionId', user.institutionId);
     formData.append('document', documentFile);
 
-    try {
-      const res = await fetch(`${API_URL}/api/cvs/collab`, {
-        method: 'POST',
-        body: formData
+    // Trigger success state, confetti, and form reset immediately in the UI
+    setCollabSuccess('¡CV enviado! Tarea SLA asignada al correo destino.');
+    confetti({
+      particleCount: 120,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#2563eb', '#10b981', '#ffffff']
+    });
+    setApplyForm({ name: '', description: '', targetEmail: '', dueDate: '' });
+    setDocumentFile(null);
+    const fileInput = document.getElementById('collab-file');
+    if (fileInput) fileInput.value = '';
+    
+    // Reset submitting immediately so button goes back to active state
+    setSubmitting(false);
+
+    // Execute API request in the background
+    fetch(`${API_URL}/api/cvs/collab`, {
+      method: 'POST',
+      body: formData
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al enviar CV');
+        fetchData(); 
+      })
+      .catch((err) => {
+        console.error("Background SLA share error:", err);
+        setCollabError(err.message);
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al enviar CV');
-      
-      setCollabSuccess('¡CV enviado! Tarea SLA asignada al correo destino.');
-      setApplyForm({ name: '', description: '', targetEmail: '', dueDate: '' });
-      setDocumentFile(null);
-      const fileInput = document.getElementById('collab-file');
-      if (fileInput) fileInput.value = '';
-      fetchData(); 
-    } catch (err) {
-      setCollabError(err.message);
-    } finally {
-      setSubmitting(false);
-    }
   };
 
   const completedActivity = tasks

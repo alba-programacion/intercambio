@@ -188,40 +188,43 @@ const Vacantes = () => {
     if (user.institutionId) formData.append('sourceInstitutionId', user.institutionId);
     formData.append('document', documentFile);
 
-    try {
-      const res = await fetch(`${API_URL}/api/cvs/vacancy`, {
-        method: 'POST',
-        body: formData
+    // Trigger success UI and confetti immediately!
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#2563eb', '#10b981', '#ffffff']
+    });
+    setSuccess('¡Candidato postulado exitosamente! La institución recibirá una notificación.');
+    setApplyForm({ name: '', email: '' });
+    
+    // Clear file input UI
+    const fileInput = document.querySelector('input[type="file"]');
+    if (fileInput) fileInput.value = '';
+    setDocumentFile(null);
+    
+    // Auto-scroll to top to see the success message
+    const modalBody = document.getElementById('vacancy-modal-body');
+    if (modalBody) modalBody.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Reset submitting immediately so the button spinner disappears instantly
+    setSubmittingCv(false);
+
+    // Execute API request in the background
+    fetch(`${API_URL}/api/cvs/vacancy`, {
+      method: 'POST',
+      body: formData
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al enviar CV');
+        fetchVacancies(); 
+        fetchAllCvs();
+        setSelectedVacancy(prev => prev ? ({...prev, cvCount: prev.cvCount + 1}) : null);
+      })
+      .catch((err) => {
+        console.error("Background application error:", err);
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al enviar CV');
-      
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#2563eb', '#10b981', '#ffffff']
-      });
-      setSuccess('¡Candidato postulado exitosamente! La institución recibirá una notificación.');
-      setApplyForm({ name: '', email: '' });
-      
-      // Clear file input UI
-      const fileInput = document.querySelector('input[type="file"]');
-      if (fileInput) fileInput.value = '';
-      setDocumentFile(null);
-      
-      // Auto-scroll to top to see the success message
-      const modalBody = document.getElementById('vacancy-modal-body');
-      if (modalBody) modalBody.scrollTo({ top: 0, behavior: 'smooth' });
-      
-      fetchVacancies(); 
-      fetchAllCvs();
-      setSelectedVacancy(prev => prev ? ({...prev, cvCount: prev.cvCount + 1}) : null);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSubmittingCv(false);
-    }
   };
 
   const handleUpdateCvStatus = async (cvId, newStatus, extraData = {}) => {
@@ -304,37 +307,43 @@ const Vacantes = () => {
     if (!requestCvForm.targetInstitutionId) return setError('Selecciona una institución válida.');
 
     setSubmittingRequest(true);
-    try {
-      const res = await fetch(`${API_URL}/api/tasks/request-cv`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          targetVacancyId: selectedVacancy.id,
-          senderEmail: user.email,
-          targetInstitutionId: requestCvForm.targetInstitutionId,
-          description: requestCvForm.description || `Por favor buscamos candidatos para: ${selectedVacancy.role}`,
-          dueDate: requestCvForm.dueDate
-        })
-      });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al enviar solicitud');
+    // Trigger success UI and confetti immediately!
+    setSuccessMessage('¡Solicitud enviada con éxito!');
+    confetti({
+      particleCount: 150,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#2563eb', '#10b981', '#ffffff']
+    });
+    setTimeout(() => setSuccessMessage(''), 3000);
 
-      setSuccessMessage('¡Solicitud enviada con éxito!');
-      confetti({
-        particleCount: 150,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#2563eb', '#10b981', '#ffffff']
+    const requestBody = {
+      targetVacancyId: selectedVacancy.id,
+      senderEmail: user.email,
+      targetInstitutionId: requestCvForm.targetInstitutionId,
+      description: requestCvForm.description || `Por favor buscamos candidatos para: ${selectedVacancy.role}`,
+      dueDate: requestCvForm.dueDate
+    };
+    
+    setRequestCvForm({ targetInstitutionId: '', description: '', dueDate: '' });
+
+    // Reset submitting immediately so the button spinner disappears instantly
+    setSubmittingRequest(false);
+
+    // Execute in the background
+    fetch(`${API_URL}/api/tasks/request-cv`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody)
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al enviar solicitud');
+      })
+      .catch((err) => {
+        console.error("Background SLA request error:", err);
       });
-      setTimeout(() => setSuccessMessage(''), 3000);
-      
-      setRequestCvForm({ targetInstitutionId: '', description: '', dueDate: '' });
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSubmittingRequest(false);
-    }
   };
 
   const calculateProgress = () => {

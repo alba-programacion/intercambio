@@ -130,6 +130,9 @@ const Tareas = () => {
     });
     setTimeout(() => setSuccessMessage(''), 3000);
 
+    // Reset submitting state immediately to prevent blocking other tasks on the page
+    setSubmittingCv(false);
+
     // Execute in the background
     fetch(`${API_URL}/api/tasks/${taskToResolve.id}/fulfill-cv`, {
       method: 'POST',
@@ -142,9 +145,6 @@ const Tareas = () => {
       })
       .catch((err) => {
         console.error("Background task fulfillment error:", err);
-      })
-      .finally(() => {
-        setSubmittingCv(false);
       });
   };
 

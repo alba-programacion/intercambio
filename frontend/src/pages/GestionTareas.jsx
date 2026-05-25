@@ -168,6 +168,9 @@ const GestionTareas = () => {
       confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
     }
 
+    // Reset resolving state immediately to prevent blocking other tasks on the page
+    setResolving(false);
+
     // Execute in background
     fetch(`${API_URL}/api/tasks/${taskToResolve.id}/fulfill-cv`, {
       method: 'POST',
@@ -181,10 +184,7 @@ const GestionTareas = () => {
           console.error("Task fulfillment error:", err.error);
         }
       })
-      .catch(err => console.error("Network error fulfilling task:", err))
-      .finally(() => {
-        setResolving(false);
-      });
+      .catch(err => console.error("Network error fulfilling task:", err));
   };
 
   const handleCompleteTask = async (id) => {

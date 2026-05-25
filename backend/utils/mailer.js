@@ -10,6 +10,9 @@ if (process.env.EMAIL_HOST && process.env.EMAIL_USER) {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
+    connectionTimeout: 1000,
+    greetingTimeout: 1000,
+    socketTimeout: 1000
   });
 }
 
