@@ -226,9 +226,7 @@ const sendEmail = async (to, subject, text, html, link = null) => {
       return info;
     } catch (error) {
       console.error('[MAILER] Error sending email via SMTP:', error);
-      if (!brevoKey || brevoKey === 'tu_api_key_de_brevo') {
-        return { error: error.message };
-      }
+      throw error;
     }
   }
 
@@ -240,7 +238,7 @@ const sendEmail = async (to, subject, text, html, link = null) => {
       return result;
     } catch (error) {
       console.error('[MAILER] Error sending email via Brevo API:', error);
-      return { error: error.message };
+      throw error;
     }
   }
 
