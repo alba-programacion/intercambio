@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { UserPlus, Mail, Lock, Building, Briefcase, Plus, X, ArrowLeft } from 'lucide-react';
+import { UserPlus, Mail, Lock, Building, Briefcase, Plus, X, ArrowLeft, Sun, Moon } from 'lucide-react';
+import { useAuth } from '../App';
 import { API_URL } from '../config';
 import logoAMIB from '../assets/logoamib.jpg';
 
 const Register = () => {
+  const { theme, toggleTheme } = useAuth();
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -62,8 +64,17 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 p-4">
-      <div className="glass-panel max-w-md w-full p-8 rounded-3xl animate-fade-in shadow-xl">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 p-4 relative">
+      <div className="absolute top-4 right-4">
+        <button 
+          onClick={toggleTheme}
+          className="p-2.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md hover:bg-slate-50 dark:hover:bg-slate-755 transition-colors text-slate-600 dark:text-slate-300"
+          title={theme === 'dark' ? 'Activar modo claro' : 'Activar modo oscuro'}
+        >
+          {theme === 'dark' ? <Sun className="w-5 h-5 text-amber-500" /> : <Moon className="w-5 h-5" />}
+        </button>
+      </div>
+      <div className="glass-panel max-w-md w-full p-8 rounded-3xl animate-fade-in shadow-xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/50 dark:border-slate-800/50">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-6">
             <div className="bg-white p-1 rounded-full shadow-lg border border-slate-100 h-32 w-32 flex items-center justify-center overflow-hidden">

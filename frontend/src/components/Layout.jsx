@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Briefcase, Building, Users, FileText, CheckSquare, LogOut, Menu, Book, Bell, Check } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Building, Users, FileText, CheckSquare, LogOut, Menu, Book, Bell, Check, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../App';
 import { API_URL } from '../config';
 import logoAMIB from '../assets/logoamib.jpg';
 
 const Layout = ({ children }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, theme, toggleTheme } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -135,17 +135,26 @@ const Layout = ({ children }) => {
       {/* Main Content */}
       <main className="flex-1 flex flex-col animate-fade-in p-4 lg:p-8 overflow-y-auto w-full">
         {/* Mobile Header */}
-        <div className="flex md:hidden items-center justify-between mb-6 glass-panel p-4 rounded-xl shadow-sm">
+        <div className="flex md:hidden items-center justify-between mb-6 glass-panel p-4 rounded-xl shadow-sm bg-white/80 dark:bg-slate-900/80 border border-slate-200/50 dark:border-slate-800/50">
           <div className="flex items-center gap-3">
             <div className="bg-white p-0.5 rounded-full h-14 w-14 flex items-center justify-center overflow-hidden border border-slate-100 shadow-sm">
               <img src={logoAMIB} alt="AMIB Logo" className="h-full w-full object-contain" />
             </div>
             <div>
               <span className="font-bold text-lg bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-indigo-600 leading-none">TalentCollab</span>
-              <p className="text-xs font-bold text-slate-500">{user?.institutionName || 'Admin'}</p>
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-400">{user?.institutionName || 'Admin'}</p>
             </div>
           </div>
-          <button className="p-2"><Menu className="w-5 h-5"/></button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={toggleTheme}
+              className="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              title={theme === 'dark' ? 'Activar modo claro' : 'Activar modo oscuro'}
+            >
+              {theme === 'dark' ? <Sun className="w-5 h-5 text-amber-500" /> : <Moon className="w-5 h-5" />}
+            </button>
+            <button className="p-2"><Menu className="w-5 h-5 text-slate-650 dark:text-slate-300"/></button>
+          </div>
         </div>
 
         {/* Global Desktop Header Welcome */}
@@ -159,6 +168,15 @@ const Layout = ({ children }) => {
             </p>
           </div>
           <div className="flex gap-3 items-center">
+             {/* Theme Toggle */}
+             <button 
+               onClick={toggleTheme}
+               className="p-2.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+               title={theme === 'dark' ? 'Activar modo claro' : 'Activar modo oscuro'}
+             >
+               {theme === 'dark' ? <Sun className="w-5 h-5 text-amber-500" /> : <Moon className="w-5 h-5 text-slate-600 dark:text-slate-350" />}
+             </button>
+
              {/* Notification Bell */}
              {user && user.role !== 'user' && (
                <div className="relative">

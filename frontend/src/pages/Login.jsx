@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../App';
 import { API_URL } from '../config';
+import { Sun, Moon } from 'lucide-react';
 import logoAMIB from '../assets/logoamib.jpg';
 
 const Login = () => {
-  const { login } = useAuth();
+  const { login, theme, toggleTheme } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('password');
@@ -117,7 +118,16 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 p-4 relative">
+      <div className="absolute top-4 right-4">
+        <button 
+          onClick={toggleTheme}
+          className="p-2.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors text-slate-600 dark:text-slate-300"
+          title={theme === 'dark' ? 'Activar modo claro' : 'Activar modo oscuro'}
+        >
+          {theme === 'dark' ? <Sun className="w-5 h-5 text-amber-500" /> : <Moon className="w-5 h-5" />}
+        </button>
+      </div>
       <div className="glass-panel max-w-md w-full p-8 rounded-3xl animate-fade-in shadow-xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-6">
