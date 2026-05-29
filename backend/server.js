@@ -157,6 +157,84 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+app.post('/api/auth/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'El correo electrónico es obligatorio.' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      return res.status(404).json({ error: 'No existe ningún usuario registrado con este correo.' });
+    }
+
+    // Generate 6-digit numeric code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    user.resetCode = code;
+    user.resetCodeExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes validity
+    await user.save();
+
+    console.log(`[AUTH] Generated reset code ${code} for ${user.email}`);
+
+    // Send email with code
+    const emailSubject = 'Código de recuperación de contraseña - TalentCollab';
+    const emailText = `Tu código de recuperación es: ${code}`;
+    const emailHtml = `
+      <p>Hola <strong>${user.name}</strong>,</p>
+      <p>Has solicitado restablecer tu contraseña en la plataforma TalentCollab.</p>
+      <p>Utiliza el siguiente código de seguridad de un solo uso para continuar:</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <span style="font-family: monospace; font-size: 36px; font-weight: bold; color: #4f46e5; background-color: #f1f5f9; padding: 10px 24px; border-radius: 12px; letter-spacing: 6px; border: 1px dashed #4f46e5; display: inline-block;">${code}</span>
+      </div>
+      <p style="color: #64748b; font-size: 14px;">Este código es válido por 15 minutos. Si no has solicitado este cambio, por favor ignora este correo y asegúrate de que tu cuenta esté segura.</p>
+    `;
+
+    await sendEmail(user.email, emailSubject, emailText, emailHtml);
+
+    res.json({ message: 'Código de recuperación enviado exitosamente a tu correo.' });
+  } catch (error) {
+    console.error('[AUTH ERROR] Error in forgot-password:', error);
+    res.status(500).json({ error: 'Error interno del servidor al procesar la solicitud.' });
+  }
+});
+
+app.post('/api/auth/reset-password', async (req, res) => {
+  try {
+    const { email, code, newPassword } = req.body;
+    if (!email || !code || !newPassword) {
+      return res.status(400).json({ error: 'Faltan datos obligatorios (correo, código o contraseña).' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado.' });
+    }
+
+    if (!user.resetCode || user.resetCode !== code.trim()) {
+      return res.status(400).json({ error: 'El código de seguridad es inválido.' });
+    }
+
+    if (new Date() > user.resetCodeExpires) {
+      return res.status(400).json({ error: 'El código de seguridad ha expirado.' });
+    }
+
+    // Set new password
+    user.password = newPassword;
+    // Clear code
+    user.resetCode = null;
+    user.resetCodeExpires = null;
+    
+    await user.save(); // pre-save hook will hash it automatically!
+
+    console.log(`[AUTH] Password reset successfully for ${user.email}`);
+    res.json({ message: 'Tu contraseña ha sido restablecida exitosamente. Ya puedes iniciar sesión.' });
+  } catch (error) {
+    console.error('[AUTH ERROR] Error in reset-password:', error);
+    res.status(500).json({ error: 'Error interno del servidor al restablecer contraseña.' });
+  }
+});
+
 app.get('/api/metrics', async (req, res) => {
   try {
     console.log('[DEBUG metrics query]', Buffer.from('En trámite').toString('hex'));
@@ -322,6 +400,23 @@ app.get('/api/vacancies', async (req, res) => {
 app.post('/api/vacancies', async (req, res) => {
   try {
     const v = await Vacancy.create(req.body);
+
+    // --- NOTIFICATION FOR ADMINS ---
+    try {
+      const inst = await Institution.findById(v.institutionId);
+      const instName = inst ? inst.name : v.institutionId;
+      await Notification.create({
+        targetInstitutionId: 'global', // Global/Admin
+        message: `¡Nueva vacante publicada! ${instName} ha publicado la vacante de ${v.role}.`,
+        type: 'INFO',
+        link: '/vacantes',
+        emailSubject: 'Nueva vacante disponible - TalentCollab',
+        emailHtml: `<p>La institución <strong>${instName}</strong> ha publicado una nueva vacante para el puesto de <strong>${v.role}</strong>.</p><p>Ubicación: ${v.location} | Modalidad: ${v.modality}</p>`
+      });
+    } catch (err) {
+      console.error('[VACANCY NOTIF ERROR]', err);
+    }
+
     res.json(v);
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
@@ -381,26 +476,14 @@ app.post('/api/cvs', upload.single('document'), async (req, res) => {
     });
     await newCv.save();
 
-    // Notify admins/managers of new candidate in repository
-    const admins = await User.find({ role: 'admin' });
-    const manager = await User.findOne({ institutionId: sourceInstitutionId, role: 'management' });
-    const recipients = [...new Set([...admins.map(a => a.email), manager?.email].filter(Boolean))];
-    
-    for (const recipient of recipients) {
-      sendEmail(
-        recipient,
-        'Nuevo candidato en el repositorio',
-        `Se ha subido un nuevo candidato (${name}) al repositorio por la institución ${sourceInstitutionId}.`,
-        `<p>Se ha subido un nuevo candidato <strong>${name}</strong> al repositorio por la institución <strong>${sourceInstitutionId}</strong>.</p>`
-      ).catch(err => console.error('Error sending upload notification email:', err));
-    }
-
     // --- NOTIFICATION FOR ADMINS ---
     await Notification.create({
       targetInstitutionId: 'global', // Global/Admin
       message: `¡Nuevo Talento! ${sourceInstitutionId} ha subido a ${name} al repositorio compartido.`,
       type: 'INFO',
-      link: '/cvs'
+      link: '/cvs',
+      emailSubject: 'Nuevo candidato en el repositorio',
+      emailHtml: `<p>Se ha subido un nuevo candidato <strong>${name}</strong> al repositorio por la institución <strong>${sourceInstitutionId}</strong>.</p>`
     });
 
     res.status(201).json(newCv);
@@ -431,19 +514,10 @@ app.post('/api/cvs/vacancy', upload.single('document'), async (req, res) => {
         targetInstitutionId: vacancyInfo.institutionId._id,
         message,
         type: 'SUCCESS',
-        link: '/vacantes'
+        link: '/vacantes',
+        emailSubject: 'Nueva postulación a tu vacante',
+        emailHtml: `<p>${message}</p><p>Puedes ver los detalles en la plataforma.</p>`
       });
-
-      // Send Email to Vacancy Owner (Manager of the institution)
-      const ownerManager = await User.findOne({ institutionId: vacancyInfo.institutionId._id, role: 'management' });
-      if (ownerManager) {
-        sendEmail(
-          ownerManager.email,
-          'Nueva postulación a tu vacante',
-          message,
-          `<p>${message}</p><p>Puedes ver los detalles en la plataforma.</p>`
-        ).catch(err => console.error('Error sending vacancy apply notification email:', err));
-      }
     }
 
     res.status(201).json({ cv });
@@ -614,16 +688,30 @@ app.post('/api/tasks/request-cv', async (req, res) => {
         targetInstitutionId,
         message: `¡Nueva Solicitud SLA! ${senderInstitutionName} te ha solicitado CVs para la vacante "${vacancyInfo?.role || 'general'}".`,
         type: 'INFO',
-        link: '/tareas'
+        link: '/tareas',
+        emailSubject: 'Nueva Solicitud de CVs (SLA)',
+        emailHtml: `<p>La institución ${senderInstitutionName} te ha solicitado CVs para la vacante <strong>"${vacancyInfo?.role || 'general'}"</strong>.</p><p>Fecha límite: ${finalDueDate.toLocaleDateString()}</p>`
       });
 
-      // Send Email to Manager
-      sendEmail(
-        manager.email,
-        'Nueva Solicitud de CVs (SLA)',
-        `Te han solicitado CVs para la vacante "${vacancyInfo?.role || 'general'}".`,
-        `<p>La institución ${senderInstitutionName} te ha solicitado CVs para la vacante <strong>"${vacancyInfo?.role || 'general'}"</strong>.</p><p>Fecha límite: ${finalDueDate.toLocaleDateString()}</p>`
-      ).catch(err => console.error('Error sending SLA request email:', err));
+      // Global notification for admins - Only if sender is NOT the admin mvelazquez
+      if (senderEmail && senderEmail.toLowerCase().trim() !== 'mvelazquez@amib.com.mx') {
+        const Institution = mongoose.models.Institution || mongoose.model('Institution');
+        const targetInst = await Institution.findById(targetInstitutionId);
+        const targetInstitutionName = targetInst ? targetInst.name : targetInstitutionId;
+        
+        let senderInstNameObj = senderInstitutionName;
+        const senderInstObj = await Institution.findById(senderUser?.institutionId);
+        if (senderInstObj) senderInstNameObj = senderInstObj.name;
+
+        await Notification.create({
+          targetInstitutionId: 'global',
+          message: `¡Solicitud SLA Iniciada! ${senderInstNameObj} ha solicitado CVs a ${targetInstitutionName} para la vacante "${vacancyInfo?.role || 'general'}".`,
+          type: 'INFO',
+          link: '/gestion-tareas',
+          emailSubject: 'Nueva Solicitud de CVs (SLA) en la plataforma',
+          emailHtml: `<p>La institución <strong>${senderInstNameObj}</strong> ha solicitado CVs a la institución <strong>${targetInstitutionName}</strong> para la vacante <strong>"${vacancyInfo?.role || 'general'}"</strong>.</p><p>Fecha límite: ${finalDueDate.toLocaleDateString()}</p>`
+        });
+      }
     } catch(err) { console.error('Error creating task notification', err); }
 
     res.status(201).json(task);
@@ -727,11 +815,14 @@ app.post('/api/tasks/:id/fulfill-cv', upload.single('document'), async (req, res
     if (!isSelf) {
       const n1 = await Notification.create({
         targetInstitutionId: targetInstId || 'global',
+        targetUserEmail: targetEmail,
         message: `¡SLA Cumplido! ${sourceInstitutionId} te ha enviado un CV (${name}) que solicitaste.`,
         type: 'SUCCESS',
-        link: '/gestion-tareas'
+        link: '/gestion-tareas',
+        emailSubject: 'SLA Cumplido: CV Recibido',
+        emailHtml: `<p>La institución <strong>${sourceInstitutionId}</strong> ha respondido a tu solicitud enviando el CV de <strong>${name}</strong> para la vacante correspondiente.</p><p>Puedes revisarlo en la sección de Gestión de Tareas de la plataforma.</p>`
       });
-      console.log(`[NOTIF CREATED] Requester: ${targetInstId || 'global'} - ${n1.message}`);
+      console.log(`[NOTIF CREATED] Requester: ${targetInstId || 'global'} | UserEmail: ${targetEmail || 'N/A'} - ${n1.message}`);
     }
 
     const n2 = await Notification.create({
