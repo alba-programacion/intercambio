@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Briefcase, Building, Users, FileText, CheckSquare, LogOut, Menu, Book, Bell, Check, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Building, Users, FileText, CheckSquare, LogOut, Menu, Book, Bell, Check, Sun, Moon, Calendar } from 'lucide-react';
 import { useAuth } from '../App';
 import { API_URL } from '../config';
 import logoAMIB from '../assets/logoamib.jpg';
@@ -72,6 +72,7 @@ const Layout = ({ children }) => {
     { to: '/cvs', icon: FileText, label: 'Repositorio de candidatos' },
     { to: '/instituciones', icon: Building, label: 'Instituciones', adminOnly: true },
     { to: '/directorio', icon: Book, label: 'Directorio' },
+    { to: '/eventos', icon: Calendar, label: 'Eventos' },
   ];
 
   return (
@@ -100,8 +101,8 @@ const Layout = ({ children }) => {
         <nav className="flex-1 px-4 py-6 space-y-2">
           {navItems.filter(item => {
              if (item.adminOnly && user?.role !== 'admin') return false;
-              // El perfil de usuario (role: 'universidad') solo tendrá acceso a vacantes y CVs
-              if (user?.role === 'universidad' && item.to !== '/vacantes' && item.to !== '/cvs') return false;
+              // El perfil de usuario (role: 'universidad') solo tendrá acceso a vacantes, CVs y eventos
+              if (user?.role === 'universidad' && item.to !== '/vacantes' && item.to !== '/cvs' && item.to !== '/eventos') return false;
              return true;
           }).map((item) => (
             <NavLink

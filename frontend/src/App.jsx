@@ -12,6 +12,7 @@ import Tareas from './pages/Tareas';
 import Instituciones from './pages/Instituciones';
 import Directorio from './pages/Directorio';
 import GestionTareas from './pages/GestionTareas';
+import Eventos from './pages/Eventos';
 
 // Auth Context
 const AuthContext = createContext(null);
@@ -97,6 +98,7 @@ function App() {
           <Route path="/gestion-tareas" element={<ProtectedRoute><GestionTareas /></ProtectedRoute>} />
           <Route path="/instituciones" element={<ProtectedRoute><Instituciones /></ProtectedRoute>} />
           <Route path="/directorio" element={<ProtectedRoute><Directorio /></ProtectedRoute>} />
+          <Route path="/eventos" element={<ProtectedRoute><Eventos /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </BrowserRouter>
