@@ -158,27 +158,33 @@ const Eventos = () => {
           <p className="text-slate-500 dark:text-slate-400">Consulta y edita eventos de la plataforma</p>
         </div>
         
-        {/* Navigation Tabs */}
-        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50 self-start md:self-center">
+        {/* Navigation Tabs (Underline design) */}
+        <div className="flex border-b border-slate-200 dark:border-slate-800 w-full md:w-auto self-start md:self-center">
           <button
             onClick={() => setActiveTab('comites')}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+            className={`px-6 py-3 text-sm font-bold transition-all relative ${
               activeTab === 'comites'
-                ? 'bg-white dark:bg-slate-750 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                ? 'text-blue-600 dark:text-blue-400'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
             Comités
+            {activeTab === 'comites' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full animate-fade-in" />
+            )}
           </button>
           <button
             onClick={() => setActiveTab('feria')}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+            className={`px-6 py-3 text-sm font-bold transition-all relative ${
               activeTab === 'feria'
-                ? 'bg-white dark:bg-slate-750 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                ? 'text-blue-600 dark:text-blue-400'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
             Feria del Libro
+            {activeTab === 'feria' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full animate-fade-in" />
+            )}
           </button>
         </div>
       </div>
@@ -309,7 +315,7 @@ const Eventos = () => {
           {isEditing && canEdit ? (
             /* Editing Form */
             <form onSubmit={handleSaveFeria} className="glass-panel p-6 rounded-3xl bg-white/70 dark:bg-slate-900/70 border border-slate-200/50 dark:border-slate-800/50 space-y-6 shadow-xl">
-              <h3 className="font-black text-xl text-slate-800 dark:text-white">{(!feriaData.description && !feriaData.image) ? 'Crear Evento de Feria del Libro' : 'Editar Feria del Libro'}</h3>
+              <h3 className="font-black text-xl text-slate-800 dark:text-white">{(!feriaData.description && !feriaData.image) ? 'Agregar Evento de Feria del Libro' : 'Editar Feria del Libro'}</h3>
               
               <div className="space-y-2">
                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-350">Descripción de qué trata el evento</label>
@@ -390,7 +396,7 @@ const Eventos = () => {
                     onClick={() => setIsEditing(true)}
                     className="p-2.5 rounded-xl bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors shadow-sm flex items-center gap-2 text-sm font-bold"
                   >
-                    <Edit className="w-4 h-4" /> {(!feriaData.description && !feriaData.image) ? 'Crear Evento' : 'Editar Evento'}
+                    <Edit className="w-4 h-4" /> {(!feriaData.description && !feriaData.image) ? 'Agregar Evento' : 'Editar Evento'}
                   </button>
                 )}
               </div>
