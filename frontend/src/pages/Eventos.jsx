@@ -152,14 +152,14 @@ const Eventos = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="space-y-4">
         <div>
           <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">Eventos</h1>
           <p className="text-slate-500 dark:text-slate-400">Consulta y edita eventos de la plataforma</p>
         </div>
         
         {/* Navigation Tabs (Underline design) */}
-        <div className="flex border-b border-slate-200 dark:border-slate-800 w-full md:w-auto self-start md:self-center">
+        <div className="flex border-b border-slate-200 dark:border-slate-800 w-full">
           <button
             onClick={() => setActiveTab('comites')}
             className={`px-6 py-3 text-sm font-bold transition-all relative ${
