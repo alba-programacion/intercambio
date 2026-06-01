@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../App';
 import { API_URL } from '../config';
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon, Eye, EyeOff } from 'lucide-react';
 import logoAMIB from '../assets/logoamib.jpg';
 
 const Login = () => {
@@ -20,6 +20,9 @@ const Login = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -180,14 +183,23 @@ const Login = () => {
                     ¿Olvidaste tu contraseña?
                   </button>
                 </div>
-                <input 
-                  type="password" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all dark:text-white"
-                  required
-                  disabled={loading}
-                />
+                <div className="relative flex items-center">
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full pl-4 pr-10 py-2.5 bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all dark:text-white"
+                    required
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
               </div>
               <button 
                 type="submit" 
@@ -200,25 +212,10 @@ const Login = () => {
               </button>
             </form>
 
-            <div className="text-center mt-4 mb-6">
+            <div className="text-center mt-4">
               <p className="text-sm text-slate-600 dark:text-slate-400">
                 ¿No tienes cuenta? <Link to="/register" className="text-blue-600 dark:text-blue-400 hover:underline font-semibold">Crear cuenta nueva</Link>
               </p>
-            </div>
-
-            <div className="border-t border-slate-200 dark:border-slate-800 pt-6">
-              <p className="text-xs text-center text-slate-500 dark:text-slate-400 mb-4 uppercase tracking-wider font-semibold">Selección rápida para probar MVP</p>
-              <div className="grid grid-cols-1 gap-2">
-                <button onClick={() => quickLogin('admin@system.com')} className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-750 rounded-xl text-sm transition-colors text-slate-700 dark:text-slate-300 flex justify-between items-center border border-slate-200/50 dark:border-slate-700/50">
-                  <span className="font-semibold text-blue-600 dark:text-blue-400">Admin</span> <span className="text-xs text-slate-500">admin@system.com</span>
-                </button>
-                <button onClick={() => quickLogin('manager@inst-a.com')} className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-750 rounded-xl text-sm transition-colors text-slate-700 dark:text-slate-300 flex justify-between items-center border border-slate-200/50 dark:border-slate-700/50">
-                  <span className="font-semibold text-indigo-600 dark:text-indigo-400">Management (A)</span> <span className="text-xs text-slate-500">manager@inst-a.com</span>
-                </button>
-                <button onClick={() => quickLogin('user@inst-a.com')} className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-750 rounded-xl text-sm transition-colors text-slate-700 dark:text-slate-300 flex justify-between items-center border border-slate-200/50 dark:border-slate-700/50">
-                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">Universidad (A)</span> <span className="text-xs text-slate-500">user@inst-a.com</span>
-                </button>
-              </div>
             </div>
           </>
         )}
@@ -280,27 +277,45 @@ const Login = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nueva Contraseña</label>
-              <input 
-                type="password" 
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full px-4 py-2.5 bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all dark:text-white"
-                required
-                disabled={loading}
-                placeholder="Mínimo 6 caracteres"
-              />
+              <div className="relative flex items-center">
+                <input 
+                  type={showNewPassword ? "text" : "password"} 
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full pl-4 pr-10 py-2.5 bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all dark:text-white"
+                  required
+                  disabled={loading}
+                  placeholder="Mínimo 6 caracteres"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                >
+                  {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Confirmar Nueva Contraseña</label>
-              <input 
-                type="password" 
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-2.5 bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all dark:text-white"
-                required
-                disabled={loading}
-                placeholder="Confirmar contraseña"
-              />
+              <div className="relative flex items-center">
+                <input 
+                  type={showConfirmPassword ? "text" : "password"} 
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full pl-4 pr-10 py-2.5 bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all dark:text-white"
+                  required
+                  disabled={loading}
+                  placeholder="Confirmar contraseña"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
             </div>
             <button 
               type="submit" 
