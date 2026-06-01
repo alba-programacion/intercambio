@@ -76,7 +76,62 @@ app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
 });
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+const getFileData = (file) => {
+  if (!file) return { data: null, mimetype: null };
+  try {
+    const filePath = file.path;
+    const fileBuffer = fs.readFileSync(filePath);
+    const base64Data = fileBuffer.toString('base64');
+    
+    // Safely delete the temporary file from disk
+    fs.unlink(filePath, (err) => {
+      if (err) console.error('[FILE] Error deleting temporary file:', err);
+    });
+
+    return {
+      data: base64Data,
+      mimetype: file.mimetype
+    };
+  } catch (error) {
+    console.error('[FILE] Error reading file for DB storage:', error);
+    return { data: null, mimetype: null };
+  }
+};
+
+app.get('/uploads/:filename', async (req, res) => {
+  try {
+    const { filename } = req.params;
+
+    // 1. Search in CVs
+    const cv = await CV.findOne({ document: filename });
+    if (cv && cv.documentData) {
+      const buffer = Buffer.from(cv.documentData, 'base64');
+      res.setHeader('Content-Type', cv.documentMimetype || 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="${cv.document}"`);
+      return res.send(buffer);
+    }
+
+    // 2. Search in Institution logos
+    const inst = await Institution.findOne({ logo: filename });
+    if (inst && inst.logoData) {
+      const buffer = Buffer.from(inst.logoData, 'base64');
+      res.setHeader('Content-Type', inst.logoMimetype || 'image/png');
+      res.setHeader('Content-Disposition', `inline; filename="${inst.logo}"`);
+      return res.send(buffer);
+    }
+
+    // 3. Fallback to local file system
+    const localPath = path.join(__dirname, 'uploads', filename);
+    if (fs.existsSync(localPath)) {
+      return res.sendFile(localPath);
+    }
+
+    res.status(404).send('Archivo no encontrado');
+  } catch (error) {
+    console.error('[UPLOADS] Error serving file:', error);
+    res.status(500).send('Error interno del servidor');
+  }
+});
 
 const MOCK_USERS = [
   { id: 1, email: 'admin@system.com', password: 'password', role: 'admin', institutionId: null },
@@ -190,7 +245,14 @@ app.post('/api/auth/forgot-password', async (req, res) => {
       <p style="color: #64748b; font-size: 14px;">Este código es válido por 15 minutos. Si no has solicitado este cambio, por favor ignora este correo y asegúrate de que tu cuenta esté segura.</p>
     `;
 
-    await sendEmail(user.email, emailSubject, emailText, emailHtml);
+    try {
+      await sendEmail(user.email, emailSubject, emailText, emailHtml);
+    } catch (mailError) {
+      console.error('[AUTH ERROR] Failed to send recovery email:', mailError);
+      return res.status(500).json({
+        error: 'No se pudo enviar el correo de recuperación. Por favor, verifica la configuración del servidor de correo o intenta más tarde.'
+      });
+    }
 
     res.json({ message: 'Código de recuperación enviado exitosamente a tu correo.' });
   } catch (error) {
@@ -328,10 +390,22 @@ app.post('/api/institutions', upload.single('logo'), async (req, res) => {
   try {
     const { _id, name, profile } = req.body;
     let logoStr = null;
+    let logoData = null;
+    let logoMimetype = null;
     if (req.file) {
       logoStr = req.file.filename;
+      const fileInfo = getFileData(req.file);
+      logoData = fileInfo.data;
+      logoMimetype = fileInfo.mimetype;
     }
-    const inst = await Institution.create({ _id, name, profile, logo: logoStr });
+    const inst = await Institution.create({ 
+      _id, 
+      name, 
+      profile, 
+      logo: logoStr,
+      logoData,
+      logoMimetype
+    });
     res.status(201).json(inst);
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
@@ -470,8 +544,12 @@ app.post('/api/cvs', upload.single('document'), async (req, res) => {
       return res.status(403).json({ error: 'Trazabilidad de origen obligatoria: Se requiere Institución de Origen para subir CVs.' });
     }
 
+    const fileInfo = getFileData(req.file);
     const newCv = new CV({
-      name, email, document: req.file.filename,
+      name, email, 
+      document: req.file.filename,
+      documentData: fileInfo.data,
+      documentMimetype: fileInfo.mimetype,
       sourceInstitutionId
     });
     await newCv.save();
@@ -499,8 +577,12 @@ app.post('/api/cvs/vacancy', upload.single('document'), async (req, res) => {
       return res.status(403).json({ error: 'Trazabilidad de origen obligatoria: Se requiere Institución de Origen para postular CVs.' });
     }
 
+    const fileInfo = getFileData(req.file);
     const cv = await CV.create({
-      name, email, document: req.file.filename,
+      name, email, 
+      document: req.file.filename,
+      documentData: fileInfo.data,
+      documentMimetype: fileInfo.mimetype,
       sourceInstitutionId,
       targetVacancyId, status: 'Cartera'
     });
@@ -533,8 +615,12 @@ app.post('/api/cvs/collab', upload.single('document'), async (req, res) => {
       return res.status(403).json({ error: 'Trazabilidad de origen obligatoria: Se requiere Institución de Origen para colaboración.' });
     }
 
+    const fileInfo = getFileData(req.file);
     const cv = await CV.create({
-      name, email, document: req.file.filename,
+      name, email, 
+      document: req.file.filename,
+      documentData: fileInfo.data,
+      documentMimetype: fileInfo.mimetype,
       sourceInstitutionId,
       targetInstitutionId: targetEmail, // Save destination email for tracking rendering
       status: 'Cartera'
@@ -793,8 +879,12 @@ app.post('/api/tasks/:id/fulfill-cv', upload.single('document'), async (req, res
       }
     }
 
+    const fileInfo = getFileData(req.file);
     const cv = await CV.create({
-      name, email, document: req.file.filename,
+      name, email, 
+      document: req.file.filename,
+      documentData: fileInfo.data,
+      documentMimetype: fileInfo.mimetype,
       sourceInstitutionId,
       targetInstitutionId: targetInstId,
       targetVacancyId: task.targetVacancyId,

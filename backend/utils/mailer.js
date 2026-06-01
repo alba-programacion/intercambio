@@ -1,15 +1,21 @@
 const nodemailer = require('nodemailer');
 const https = require('https');
 
+const host = process.env.EMAIL_HOST ? process.env.EMAIL_HOST.trim() : null;
+const user = process.env.EMAIL_USER ? process.env.EMAIL_USER.trim() : null;
+const pass = process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/[\r\n\s]/g, '') : null;
+const port = process.env.EMAIL_PORT ? parseInt(process.env.EMAIL_PORT.toString().trim(), 10) : 587;
+const secure = process.env.EMAIL_SECURE ? process.env.EMAIL_SECURE.toString().trim() === 'true' : false;
+
 let transporter = null;
-if (process.env.EMAIL_HOST && process.env.EMAIL_USER) {
+if (host && user) {
   transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: process.env.EMAIL_PORT || 587,
-    secure: process.env.EMAIL_SECURE === 'true',
+    host,
+    port,
+    secure,
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
+      user,
+      pass,
     },
     connectionTimeout: 5000,
     greetingTimeout: 5000,
@@ -19,9 +25,9 @@ if (process.env.EMAIL_HOST && process.env.EMAIL_USER) {
 
 const sendBrevoApi = (to, subject, text, html) => {
   return new Promise((resolve, reject) => {
-    const apiKey = process.env.BREVO_API_KEY;
-    const fromEmail = process.env.BREVO_FROM_EMAIL || process.env.EMAIL_USER || 'no-reply@talentcollab.com';
-    const fromName = process.env.BREVO_FROM_NAME || 'TalentCollab';
+    const apiKey = process.env.BREVO_API_KEY ? process.env.BREVO_API_KEY.replace(/[\r\n\s]/g, '') : null;
+    const fromEmail = (process.env.BREVO_FROM_EMAIL || process.env.EMAIL_USER || 'no-reply@talentcollab.com').toString().trim();
+    const fromName = (process.env.BREVO_FROM_NAME || 'TalentCollab').toString().trim();
 
     const postData = JSON.stringify({
       sender: {
@@ -199,9 +205,9 @@ const getPremiumEmailTemplate = (contentHtml, link = null) => {
 };
 
 const sendEmail = async (to, subject, text, html, link = null) => {
-  const brevoKey = process.env.BREVO_API_KEY;
-  const fromEmail = process.env.BREVO_FROM_EMAIL || process.env.EMAIL_USER || 'no-reply@talentcollab.com';
-  const fromName = process.env.BREVO_FROM_NAME || 'TalentCollab';
+  const brevoKey = process.env.BREVO_API_KEY ? process.env.BREVO_API_KEY.replace(/[\r\n\s]/g, '') : null;
+  const fromEmail = (process.env.BREVO_FROM_EMAIL || process.env.EMAIL_USER || 'no-reply@talentcollab.com').toString().trim();
+  const fromName = (process.env.BREVO_FROM_NAME || 'TalentCollab').toString().trim();
 
   // Auto-wrap in premium template if it's not a full HTML document
   let finalHtml = html;
@@ -211,7 +217,23 @@ const sendEmail = async (to, subject, text, html, link = null) => {
     finalHtml = getPremiumEmailTemplate(`<p>${text}</p>`, link);
   }
 
-  // Choose transport: SMTP first (since SMTP details were explicitly configured), Brevo API second, Mock third
+  // Choose transport: Brevo API first (to bypass SMTP blocks on platforms like Render Free), SMTP second, Mock third
+  if (brevoKey && brevoKey !== 'tu_api_key_de_brevo') {
+    try {
+      console.log(`[MAILER] Sending email via Brevo API to: ${to}`);
+      const result = await sendBrevoApi(to, subject, text, finalHtml);
+      console.log(`[MAILER] Brevo email sent successfully to ${to}`);
+      return result;
+    } catch (error) {
+      console.error('[MAILER] Error sending email via Brevo API:', error);
+      if (transporter) {
+        console.log('[MAILER] Falling back to SMTP...');
+      } else {
+        throw error;
+      }
+    }
+  }
+
   if (transporter) {
     try {
       console.log(`[MAILER] Sending email via SMTP to: ${to}`);
@@ -226,18 +248,6 @@ const sendEmail = async (to, subject, text, html, link = null) => {
       return info;
     } catch (error) {
       console.error('[MAILER] Error sending email via SMTP:', error);
-      throw error;
-    }
-  }
-
-  if (brevoKey && brevoKey !== 'tu_api_key_de_brevo') {
-    try {
-      console.log(`[MAILER] Sending email via Brevo API to: ${to}`);
-      const result = await sendBrevoApi(to, subject, text, finalHtml);
-      console.log(`[MAILER] Brevo email sent successfully to ${to}`);
-      return result;
-    } catch (error) {
-      console.error('[MAILER] Error sending email via Brevo API:', error);
       throw error;
     }
   }
