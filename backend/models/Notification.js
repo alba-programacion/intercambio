@@ -23,7 +23,11 @@ notificationSchema.post('save', async function (doc) {
       recipients.push(doc.targetUserEmail);
     }
     
-    if (!doc.targetInstitutionId || doc.targetInstitutionId === 'global' || doc.targetInstitutionId === 'null' || doc.targetInstitutionId === 'undefined') {
+    if (doc.targetInstitutionId === 'global') {
+      // Global notification: send to all users in the system (admins and institution users)
+      const allUsers = await User.find({});
+      recipients = recipients.concat(allUsers.map(u => u.email));
+    } else if (!doc.targetInstitutionId || doc.targetInstitutionId === 'null' || doc.targetInstitutionId === 'undefined') {
       // Admin global: show only global/admin notifications, send to all admins
       const admins = await User.find({ role: 'admin' });
       recipients = recipients.concat(admins.map(a => a.email));

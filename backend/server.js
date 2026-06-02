@@ -868,6 +868,12 @@ app.post('/api/tasks/request-cv', async (req, res) => {
   try {
     const { targetVacancyId, senderEmail, targetInstitutionId, description, dueDate } = req.body;
 
+    // Check if the sender is an admin
+    const senderUser = await User.findOne({ email: senderEmail });
+    if (!senderUser || senderUser.role !== 'admin') {
+      return res.status(403).json({ error: 'Solo los administradores pueden solicitar CVs a otras instituciones.' });
+    }
+
     // Find manager for the strict target institution
     let manager = await User.findOne({ institutionId: targetInstitutionId, role: { $in: ['management', 'admin'] } });
 
@@ -1120,9 +1126,11 @@ app.get('/api/notifications/:institutionId', async (req, res) => {
         { targetInstitutionId: 'global' }
       ] };
     } else {
-      // Institution user: show ONLY notifications targeted to their own institution
-      // (no global admin notifications — those are not meant for them)
-      q = { targetInstitutionId: institutionId };
+      // Institution user: show notifications targeted to their own institution OR global notifications
+      q = { $or: [
+        { targetInstitutionId: institutionId },
+        { targetInstitutionId: 'global' }
+      ] };
     }
       
     const notifs = await Notification.find(q).sort({ createdAt: -1 }).limit(30);
