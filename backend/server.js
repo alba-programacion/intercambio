@@ -14,7 +14,73 @@ const Task = require('./models/Task');
 const Notification = require('./models/Notification');
 const Contact = require('./models/Contact');
 const Fine = require('./models/Fine');
+const Event = require('./models/Event');
 const { sendEmail } = require('./utils/mailer');
+
+// --- COMMITTEE EVENTS AUTOMATIC NOTIFICATIONS ---
+function getFirstTuesdayOfMonth(year, month) {
+  const date = new Date(year, month, 1);
+  while (date.getDay() !== 2) { // 2 = Tuesday
+    date.setDate(date.getDate() + 1);
+  }
+  return date;
+}
+
+function getMondayBeforeFirstTuesday(year, month) {
+  const firstTuesday = getFirstTuesdayOfMonth(year, month);
+  const monday = new Date(firstTuesday);
+  monday.setDate(monday.getDate() - 1);
+  return monday;
+}
+
+async function checkAndSendCommitteeReminder(force = false) {
+  try {
+    const today = new Date();
+    const targetMonday = getMondayBeforeFirstTuesday(today.getFullYear(), today.getMonth());
+    
+    // Check if today is the target Monday
+    const isTargetDay = today.getDate() === targetMonday.getDate() &&
+                         today.getMonth() === targetMonday.getMonth() &&
+                         today.getFullYear() === targetMonday.getFullYear();
+                         
+    if (!isTargetDay && !force) {
+      console.log(`[EVENTS] Today is not the committee reminder day. Target Monday is ${targetMonday.toLocaleDateString()}`);
+      return;
+    }
+    
+    // Check if we already sent the reminder for this month
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    
+    const existing = force ? null : await Notification.findOne({
+      type: 'ALERT',
+      message: { $regex: 'mañana es el comité', $options: 'i' },
+      createdAt: { $gte: startOfMonth, $lte: endOfMonth }
+    });
+    
+    if (!existing) {
+      console.log('[EVENTS] Sending monthly committee reminder...');
+      await Notification.create({
+        targetInstitutionId: 'global', // Send to all (admins/users)
+        message: 'Recordatorio: mañana es el comité en Av. paseo de la republica #255, P1',
+        type: 'ALERT',
+        link: '/eventos',
+        emailSubject: 'Recordatorio: Comité mensual de TalentCollab',
+        emailHtml: `
+          <p>Hola,</p>
+          <p>Te recordamos que <strong>mañana</strong> se llevará a cabo el comité mensual.</p>
+          <p><strong>Ubicación:</strong> Av. paseo de la republica #255, P1</p>
+          <p>Por favor, asiste puntualmente.</p>
+        `
+      });
+      console.log('[EVENTS] Committee reminder notification created successfully.');
+    } else {
+      console.log('[EVENTS] Committee reminder for this month has already been sent.');
+    }
+  } catch (error) {
+    console.error('[EVENTS] Error checking/sending committee reminder:', error);
+  }
+}
 
 const app = express();
 
@@ -65,7 +131,20 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/talent-co
       ]
     });
     console.log(`🧹 Cleaned up ${deleteResult.deletedCount} completed tasks older than 30 days`);
-    
+    // Seed Event for Book Fair
+    if ((await Event.countDocuments({ title: 'Feria del Libro' })) === 0) {
+      await Event.create({
+        title: 'Feria del Libro',
+        description: 'Descripción inicial de la Feria del Libro.'
+      });
+      console.log('🌱 Seeded Book Fair Event');
+    }
+
+    // Run committee reminder check on startup
+    await checkAndSendCommitteeReminder();
+    // Schedule check every 24 hours
+    setInterval(checkAndSendCommitteeReminder, 24 * 60 * 60 * 1000);
+
     console.log('🔄 Applied migrations and verified indices');
   })
   .catch((err) => console.error('❌ Failed to connect to MongoDB:', err));
@@ -120,7 +199,16 @@ app.get('/uploads/:filename', async (req, res) => {
       return res.send(buffer);
     }
 
-    // 3. Fallback to local file system
+    // 3. Search in Event images
+    const evt = await Event.findOne({ image: filename });
+    if (evt && evt.imageData) {
+      const buffer = Buffer.from(evt.imageData, 'base64');
+      res.setHeader('Content-Type', evt.imageMimetype || 'image/png');
+      res.setHeader('Content-Disposition', `inline; filename="${evt.image}"`);
+      return res.send(buffer);
+    }
+
+    // 4. Fallback to local file system
     const localPath = path.join(__dirname, 'uploads', filename);
     if (fs.existsSync(localPath)) {
       return res.sendFile(localPath);
@@ -294,6 +382,54 @@ app.post('/api/auth/reset-password', async (req, res) => {
   } catch (error) {
     console.error('[AUTH ERROR] Error in reset-password:', error);
     res.status(500).json({ error: 'Error interno del servidor al restablecer contraseña.' });
+  }
+});
+
+// GET event details by title
+app.get('/api/events/:title', async (req, res) => {
+  try {
+    const event = await Event.findOne({ title: req.params.title });
+    if (!event) return res.status(404).json({ error: 'Evento no encontrado' });
+    res.json(event);
+  } catch (e) {
+    res.status(550).json({ error: e.message });
+  }
+});
+
+// Update event details (with optional image upload)
+app.post('/api/events/:title', upload.single('image'), async (req, res) => {
+  try {
+    const { description } = req.body;
+    const { title } = req.params;
+
+    let event = await Event.findOne({ title });
+    if (!event) {
+      event = new Event({ title });
+    }
+
+    event.description = description || '';
+
+    if (req.file) {
+      event.image = req.file.filename;
+      const fileInfo = getFileData(req.file);
+      event.imageData = fileInfo.data;
+      event.imageMimetype = fileInfo.mimetype;
+    }
+
+    await event.save();
+    res.json(event);
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// Force send committee reminder manually
+app.post('/api/events/comite/reminder', async (req, res) => {
+  try {
+    await checkAndSendCommitteeReminder(true);
+    res.json({ message: 'Recordatorio de comité enviado exitosamente.' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 

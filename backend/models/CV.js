@@ -4,6 +4,8 @@ const cvSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String },
   document: { type: String, required: true },
+  documentData: { type: String },
+  documentMimetype: { type: String },
   sourceInstitutionId: { type: String, ref: 'Institution' },
   targetInstitutionId: { type: String },
   targetVacancyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vacancy' },

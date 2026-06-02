@@ -5,6 +5,8 @@ const institutionSchema = new mongoose.Schema({
   name: { type: String, required: true },
   profile: { type: String, default: 'General' },
   logo: { type: String },
+  logoData: { type: String },
+  logoMimetype: { type: String },
   titularName: { type: String },
   titularMail: { type: String },
   titularPhone: { type: String },
