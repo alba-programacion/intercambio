@@ -81,12 +81,12 @@ const Layout = ({ children }) => {
       <aside className="w-64 glass-panel flex flex-col m-4 rounded-2xl overflow-hidden shadow-lg border border-slate-200 dark:border-slate-800 hidden md:flex">
         <div className="p-6 text-center border-b border-slate-200 dark:border-slate-800">
           <div className="mb-4 flex justify-center">
-            <div className="bg-white p-1 rounded-full shadow-md border border-slate-100 h-24 w-24 flex items-center justify-center overflow-hidden">
-              <img src={logoAMIB} alt="AMIB Logo" className="h-full w-full object-contain" />
+            <div className="bg-white p-1 rounded-full shadow-md border border-slate-100 h-32 w-32 flex items-center justify-center overflow-hidden">
+              <img src={logoAMIB} alt="AMIB Logo" className="h-full w-full object-contain scale-135" />
             </div>
           </div>
           <h1 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-indigo-600">
-            TalentCollab
+            Intercambio de Talento
           </h1>
           <div className="mt-4 p-2.5 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl border border-indigo-100 dark:border-indigo-800/50">
             <p className="text-[10px] uppercase tracking-wider font-bold text-indigo-400 dark:text-indigo-400 mb-1">Institución Emisora</p>
@@ -138,11 +138,11 @@ const Layout = ({ children }) => {
         {/* Mobile Header */}
         <div className="flex md:hidden items-center justify-between mb-6 glass-panel p-4 rounded-xl shadow-sm bg-white/80 dark:bg-slate-900/80 border border-slate-200/50 dark:border-slate-800/50">
           <div className="flex items-center gap-3">
-            <div className="bg-white p-0.5 rounded-full h-14 w-14 flex items-center justify-center overflow-hidden border border-slate-100 shadow-sm">
-              <img src={logoAMIB} alt="AMIB Logo" className="h-full w-full object-contain" />
+            <div className="bg-white p-0.5 rounded-full h-18 w-18 flex items-center justify-center overflow-hidden border border-slate-100 shadow-sm">
+              <img src={logoAMIB} alt="AMIB Logo" className="h-full w-full object-contain scale-135" />
             </div>
             <div>
-              <span className="font-bold text-lg bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-indigo-600 leading-none">TalentCollab</span>
+              <span className="font-bold text-lg bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-indigo-600 leading-none">Intercambio de Talento</span>
               <p className="text-xs font-bold text-slate-500 dark:text-slate-400">{user?.institutionName || 'Admin'}</p>
             </div>
           </div>

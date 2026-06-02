@@ -134,11 +134,11 @@ const Login = () => {
       <div className="glass-panel max-w-md w-full p-8 rounded-3xl animate-fade-in shadow-xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-6">
-            <div className="bg-white p-1 rounded-full shadow-lg border border-slate-100 h-28 w-28 flex items-center justify-center overflow-hidden">
-               <img src={logoAMIB} alt="AMIB Logo" className="h-full w-full object-contain" />
+            <div className="bg-white p-1 rounded-full shadow-lg border border-slate-100 h-36 w-36 flex items-center justify-center overflow-hidden">
+               <img src={logoAMIB} alt="AMIB Logo" className="h-full w-full object-contain scale-135" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-indigo-600 mb-2">TalentCollab</h1>
+          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-indigo-600 mb-2">Intercambio de Talento</h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm">
             {mode === 'login' && 'Sistema de Colaboración Inter-Institucional'}
             {mode === 'forgot' && 'Recuperación de Contraseña'}

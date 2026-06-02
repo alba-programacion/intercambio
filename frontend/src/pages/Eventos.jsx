@@ -389,7 +389,7 @@ const Eventos = () => {
               <div className="flex justify-between items-start gap-4">
                 <div>
                   <span className="text-xs font-black text-indigo-500 uppercase tracking-widest">Feria del Libro</span>
-                  <h2 className="text-2xl font-black text-slate-800 dark:text-white">Feria de Lectura TalentCollab</h2>
+                  <h2 className="text-2xl font-black text-slate-800 dark:text-white">Feria de Lectura - Intercambio de Talento</h2>
                 </div>
                 {canEdit && (
                   <button

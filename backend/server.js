@@ -634,8 +634,47 @@ app.post('/api/vacancies', async (req, res) => {
 app.patch('/api/vacancies/:id/status', async (req, res) => {
   try {
     const v = await Vacancy.findById(req.params.id);
+    const oldStatus = v.status;
     v.status = req.body.status;
     await v.save();
+
+    if (oldStatus !== v.status) {
+      try {
+        const inst = await Institution.findById(v.institutionId);
+        const instName = inst ? inst.name : v.institutionId;
+        let message = '';
+        let emailSubject = '';
+        let emailHtml = '';
+
+        if (v.status === 'Cerrada') {
+          message = `La vacante de ${v.role} publicada por ${instName} ha sido cerrada.`;
+          emailSubject = `Vacante cerrada: ${v.role} - Intercambio de Talento`;
+          emailHtml = `<p>La vacante de <strong>${v.role}</strong> publicada por la institución <strong>${instName}</strong> ha sido cerrada.</p><p>Ya no se aceptan más postulaciones para este puesto.</p>`;
+        } else if (v.status === 'Pausada') {
+          message = `La vacante de ${v.role} publicada por ${instName} ha sido pausada.`;
+          emailSubject = `Vacante pausada: ${v.role} - Intercambio de Talento`;
+          emailHtml = `<p>La vacante de <strong>${v.role}</strong> publicada por la institución <strong>${instName}</strong> ha sido pausada temporalmente.</p>`;
+        } else if (v.status === 'Abierta') {
+          message = `La vacante de ${v.role} publicada por ${instName} está abierta nuevamente.`;
+          emailSubject = `Vacante abierta: ${v.role} - Intercambio de Talento`;
+          emailHtml = `<p>La vacante de <strong>${v.role}</strong> publicada por la institución <strong>${instName}</strong> está abierta nuevamente para recibir candidatos.</p>`;
+        }
+
+        if (message) {
+          await Notification.create({
+            targetInstitutionId: 'global',
+            message,
+            type: 'INFO',
+            link: '/vacantes',
+            emailSubject,
+            emailHtml
+          });
+        }
+      } catch (err) {
+        console.error('[VACANCY STATUS NOTIF ERROR]', err);
+      }
+    }
+
     res.json(v);
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
@@ -796,6 +835,7 @@ app.patch('/api/cvs/:id/status', async (req, res) => {
     const cv = await CV.findById(req.params.id);
     const { status, rejectionCode, rejectionReasonCustom, rejectedBy, targetVacancyId } = req.body;
     
+    const oldStatus = cv.status;
     cv.status = status;
 
     let historyAction = `Cambiado a ${status}`;
@@ -831,6 +871,48 @@ app.patch('/api/cvs/:id/status', async (req, res) => {
     });
 
     await cv.save();
+
+    if (oldStatus !== status) {
+      try {
+        if (cv.sourceInstitutionId) {
+          let actionVerb = '';
+          let extraDetails = '';
+          if (status === 'Aceptado') {
+            actionVerb = 'aceptado';
+            extraDetails = '¡Felicidades! Tu candidato ha sido seleccionado.';
+          } else if (status === 'Rechazado') {
+            actionVerb = 'rechazado';
+            extraDetails = rejectionCode ? `Motivo de rechazo: Código ${rejectionCode}${rejectionReasonCustom ? ` (${rejectionReasonCustom})` : ''}` : '';
+          } else if (status === 'En Proceso') {
+            actionVerb = 'puesto en trámite';
+            extraDetails = 'El proceso de selección ha comenzado para este candidato.';
+          } else if (status === 'Cartera') {
+            actionVerb = 'enviado a la cartera de talento';
+            extraDetails = 'El candidato ahora está disponible en el repositorio global.';
+          } else {
+            actionVerb = `cambiado a estado ${status}`;
+          }
+
+          const vacancyText = cv.targetVacancyId ? ` para la vacante` : '';
+
+          await Notification.create({
+            targetInstitutionId: cv.sourceInstitutionId,
+            message: `El estado de tu candidato ${cv.name}${vacancyText} ha sido ${actionVerb}.`,
+            type: status === 'Aceptado' ? 'SUCCESS' : status === 'Rechazado' ? 'ALERT' : 'INFO',
+            link: '/cvs',
+            emailSubject: `Cambio de estado de candidato: ${cv.name} - Intercambio de Talento`,
+            emailHtml: `
+              <p>Hola,</p>
+              <p>Te notificamos que el estado de tu candidato <strong>${cv.name}</strong> ha cambiado a: <strong>${status}</strong>.</p>
+              ${extraDetails ? `<p><strong>Detalles:</strong> ${extraDetails}</p>` : ''}
+              <p>Puedes ver los detalles en la plataforma.</p>
+            `
+          });
+        }
+      } catch (err) {
+        console.error('[CV STATUS NOTIF ERROR]', err);
+      }
+    }
 
     // Auto-notification for collaboration
     if ((status === 'Rechazado' || status === 'Aceptado') && cv.sourceInstitutionId) {
