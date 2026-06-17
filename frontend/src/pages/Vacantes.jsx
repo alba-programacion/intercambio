@@ -53,10 +53,10 @@ const Vacantes = () => {
   const [rejectionReasonCustom, setRejectionReasonCustom] = useState('');
 
   // Forms state
-  const [form, setForm] = useState({ 
+  const [form, setForm] = useState({
     role: '', salary: '', location: '', modality: 'Presencial',
-    experience: '', education: '', observations: '', language: '', 
-    activities: '', confidential: false, age: '', gender: 'Indistinto', 
+    experience: '', education: '', observations: '', language: '',
+    activities: '', confidential: false, age: '', gender: 'Indistinto',
     skills: '', institutionId: ''
   });
   const [applyForm, setApplyForm] = useState({ name: '', email: '' });
@@ -64,7 +64,7 @@ const Vacantes = () => {
   const [documentFile, setDocumentFile] = useState(null);
   const [submittingCv, setSubmittingCv] = useState(false);
   const [submittingRequest, setSubmittingRequest] = useState(false);
-  
+
   // Messages
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -106,7 +106,7 @@ const Vacantes = () => {
       const instsData = await resInsts.json();
       setVacancies(Array.isArray(vacsData) ? vacsData : []);
       setInstitutions(Array.isArray(instsData) ? instsData : []);
-    } catch(e) { console.error(e) }
+    } catch (e) { console.error(e) }
   };
 
   const handleCloseVacancyModal = () => {
@@ -174,7 +174,7 @@ const Vacantes = () => {
   const handleAddVacancy = async (e) => {
     e.preventDefault();
     setError(''); setSuccess('');
-    
+
     if (!user?.institutionId && !isEditing) {
       setError('No tienes una institución asignada para publicar esta vacante.');
       return;
@@ -194,11 +194,11 @@ const Vacantes = () => {
         const errorData = await res.json();
         throw new Error(errorData.error || `Error al ${isEditing ? 'actualizar' : 'crear'} vacante`);
       }
-      
-      setForm({ 
+
+      setForm({
         role: '', salary: '', location: '', modality: 'Presencial',
-        experience: '', education: '', observations: '', language: '', 
-        activities: '', confidential: false, age: '', gender: 'Indistinto', 
+        experience: '', education: '', observations: '', language: '',
+        activities: '', confidential: false, age: '', gender: 'Indistinto',
         skills: '', institutionId: ''
       });
       setShowAddModal(false);
@@ -220,8 +220,8 @@ const Vacantes = () => {
   const handleEditClick = (v) => {
     setForm({
       role: v.role, salary: v.salary, location: v.location, modality: v.modality || 'Presencial',
-      experience: v.experience, education: v.education, observations: v.observations, language: v.language, 
-      activities: v.activities, confidential: v.confidential, age: v.age, gender: v.gender || 'Indistinto', 
+      experience: v.experience, education: v.education, observations: v.observations, language: v.language,
+      activities: v.activities, confidential: v.confidential, age: v.age, gender: v.gender || 'Indistinto',
       skills: v.skills, institutionId: v.institutionId
     });
     setEditingId(v.id || v._id);
@@ -235,7 +235,7 @@ const Vacantes = () => {
     if (submittingCv) return;
     setError(''); setSuccess('');
     if (!documentFile) return setError('Por favor adjunta el CV (PDF/Word).');
-    
+
     setSubmittingCv(true);
     const formData = new FormData();
     formData.append('name', applyForm.name);
@@ -253,12 +253,12 @@ const Vacantes = () => {
     });
     setSuccess('¡Candidato postulado exitosamente! La institución recibirá una notificación.');
     setApplyForm({ name: '', email: '' });
-    
+
     // Clear file input UI
     const fileInput = document.querySelector('input[type="file"]');
     if (fileInput) fileInput.value = '';
     setDocumentFile(null);
-    
+
     // Auto-scroll to top to see the success message
     const modalBody = document.getElementById('vacancy-modal-body');
     if (modalBody) modalBody.scrollTo({ top: 0, behavior: 'smooth' });
@@ -274,9 +274,9 @@ const Vacantes = () => {
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error al enviar CV');
-        fetchVacancies(); 
+        fetchVacancies();
         fetchAllCvs();
-        setSelectedVacancy(prev => prev ? ({...prev, cvCount: prev.cvCount + 1}) : null);
+        setSelectedVacancy(prev => prev ? ({ ...prev, cvCount: prev.cvCount + 1 }) : null);
       })
       .catch((err) => {
         console.error("Background application error:", err);
@@ -307,27 +307,27 @@ const Vacantes = () => {
         body: JSON.stringify(body)
       });
       if (!res.ok) throw new Error('Error al actualizar status');
-      
+
       fetchAllCvs(); // refresh the list
-      
+
       if (newStatus === 'Rechazado') {
-         setSelectedVacancy(prev => prev ? ({...prev, cvCount: prev.cvCount - 1}) : null);
-         setShowRejectionModal(false);
-         setRejectingCv(null);
-         setrejectionCode('');
-         setRejectionReasonCustom('');
+        setSelectedVacancy(prev => prev ? ({ ...prev, cvCount: prev.cvCount - 1 }) : null);
+        setShowRejectionModal(false);
+        setRejectingCv(null);
+        setrejectionCode('');
+        setRejectionReasonCustom('');
       }
-    } catch(err) { alert(err.message) }
+    } catch (err) { alert(err.message) }
   };
 
   const handleConfirmRejection = (e) => {
     e.preventDefault();
     if (!rejectionCode) return alert("Selecciona una clave de rechazo");
     if (rejectionCode === 'I' && !rejectionReasonCustom.trim()) return alert("Favor de especificar el motivo");
-    
-    handleUpdateCvStatus(rejectingCv, 'Rechazado', { 
-      rejectionCode, 
-      rejectionReasonCustom: rejectionCode === 'I' ? rejectionReasonCustom : '' 
+
+    handleUpdateCvStatus(rejectingCv, 'Rechazado', {
+      rejectionCode,
+      rejectionReasonCustom: rejectionCode === 'I' ? rejectionReasonCustom : ''
     });
   };
 
@@ -340,10 +340,10 @@ const Vacantes = () => {
       });
       if (!res.ok) throw new Error('Error al actualizar status de vacante');
       fetchVacancies();
-      if(selectedVacancy && selectedVacancy.id === vacancyId) {
-        setSelectedVacancy({...selectedVacancy, status: newStatus});
+      if (selectedVacancy && selectedVacancy.id === vacancyId) {
+        setSelectedVacancy({ ...selectedVacancy, status: newStatus });
       }
-    } catch(err) { alert(err.message) }
+    } catch (err) { alert(err.message) }
   };
 
   const handleDeleteVacancy = async (vacancyId) => {
@@ -353,7 +353,7 @@ const Vacantes = () => {
       if (!res.ok) throw new Error('Error al eliminar');
       fetchVacancies();
       if (selectedVacancy && selectedVacancy.id === vacancyId) handleCloseVacancyModal();
-    } catch(err) { alert(err.message) }
+    } catch (err) { alert(err.message) }
   };
 
   const handleRequestCv = async (e) => {
@@ -381,7 +381,7 @@ const Vacantes = () => {
       description: requestCvForm.description || `Por favor buscamos candidatos para: ${selectedVacancy.role}`,
       dueDate: requestCvForm.dueDate
     };
-    
+
     setRequestCvForm({ targetInstitutionId: '', description: '', dueDate: '' });
 
     // Reset submitting immediately so the button spinner disappears instantly
@@ -454,7 +454,7 @@ const Vacantes = () => {
           <div>
             <h3 className="text-xl font-bold text-slate-700 dark:text-slate-300 mb-1">No hay vacantes publicadas</h3>
             <p className="text-sm text-slate-400 dark:text-slate-500 max-w-sm mx-auto">
-              Aún no se han publicado vacantes en la red. 
+              Aún no se han publicado vacantes en la red.
               {(user?.role === 'management' || user?.role === 'admin') && (
                 <> Usa el botón <span className="font-semibold text-blue-500">+ Nueva Vacante</span> para publicar la primera.</>
               )}
@@ -464,12 +464,12 @@ const Vacantes = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {vacancies.map((v) => (
-            <div 
-              key={v.id} 
-              onClick={() => { 
-                setSelectedVacancy(v); 
-                setError(''); 
-                setSuccess(''); 
+            <div
+              key={v.id}
+              onClick={() => {
+                setSelectedVacancy(v);
+                setError('');
+                setSuccess('');
                 const url = new URL(window.location);
                 url.searchParams.set('id', v.id || v._id);
                 window.history.replaceState({}, '', url.pathname + url.search);
@@ -480,7 +480,7 @@ const Vacantes = () => {
                 <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
                   <Briefcase className="w-6 h-6 text-blue-500" />
                 </div>
-                <select 
+                <select
                   value={v.status}
                   onClick={(e) => e.stopPropagation()}
                   onChange={(e) => { e.stopPropagation(); handleUpdateVacancyStatus(v.id, e.target.value); }}
@@ -491,16 +491,16 @@ const Vacantes = () => {
                   <option value="Cerrada">Cerrada</option>
                 </select>
               </div>
-              
+
               <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{v.role}</h3>
               <p className="text-sm font-bold text-blue-600 dark:text-blue-400 mt-1">{formatSalary(v.salary)}</p>
               <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-3 h-10">{v.activities}</p>
-              
+
               <div className="flex flex-wrap items-center gap-4 text-sm font-semibold mb-4">
-                <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300 px-3 py-1 rounded-xl"><Building className="w-4 h-4"/> {v.institutionName}</span>
-                <span className="flex items-center gap-1.5 bg-sky-50 text-sky-700 dark:bg-sky-900/20 dark:text-sky-400 px-3 py-1 rounded-xl"><Briefcase className="w-4 h-4"/> {v.modality || 'Presencial'}</span>
+                <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300 px-3 py-1 rounded-xl"><Building className="w-4 h-4" /> {v.institutionName}</span>
+                <span className="flex items-center gap-1.5 bg-sky-50 text-sky-700 dark:bg-sky-900/20 dark:text-sky-400 px-3 py-1 rounded-xl"><Briefcase className="w-4 h-4" /> {v.modality || 'Presencial'}</span>
               </div>
-              
+
               <div className="mt-auto pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center">
                 <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-medium bg-indigo-50 dark:bg-indigo-900/20 px-3 py-1 rounded-lg">
                   <Users className="w-4 h-4" />
@@ -523,7 +523,7 @@ const Vacantes = () => {
               </button>
             </div>
             {error && showAddModal && <div className="m-6 mb-0 p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-200">{error}</div>}
-            
+
             <div className="px-6 pt-4">
               <div className="flex justify-between items-center mb-1">
                 <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">Completitud de la Vacante</span>
@@ -538,15 +538,15 @@ const Vacantes = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-slate-800 dark:text-slate-100 mb-1">Puesto Solicitado</label>
-                  <input type="text" value={form.role} onChange={e=>setForm({...form, role: e.target.value})} required className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" />
+                  <input type="text" value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} required className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-slate-800 dark:text-slate-100 mb-1">Rango Salarial</label>
-                  <input type="text" value={form.salary} onChange={e=>setForm({...form, salary: e.target.value})} placeholder="Ej. Competitivo / $20k - $30k" className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" />
+                  <input type="text" value={form.salary} onChange={e => setForm({ ...form, salary: e.target.value })} placeholder="Ej. Competitivo / $20k - $30k" className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-slate-800 dark:text-slate-100 mb-1">Modalidad</label>
-                  <select value={form.modality} onChange={e=>setForm({...form, modality: e.target.value})} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white">
+                  <select value={form.modality} onChange={e => setForm({ ...form, modality: e.target.value })} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white">
                     <option value="Presencial">Presencial</option>
                     <option value="Virtual">Virtual</option>
                     <option value="Híbrida">Híbrida</option>
@@ -555,18 +555,18 @@ const Vacantes = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-slate-800 dark:text-slate-100 mb-1">Ubicación Geográfica</label>
-                  <input type="text" value={form.location} onChange={e=>setForm({...form, location: e.target.value})} placeholder="Ciudad, Estado..." className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" />
+                  <input type="text" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} placeholder="Ciudad, Estado..." className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" />
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-slate-800 dark:text-slate-100 mb-1">Rango de Edad Recomendado</label>
-                  <input type="text" value={form.age} onChange={e=>setForm({...form, age: e.target.value})} placeholder="Ej. 25 a 35 años" className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" />
+                  <input type="text" value={form.age} onChange={e => setForm({ ...form, age: e.target.value })} placeholder="Ej. 25 a 35 años" className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-slate-800 dark:text-slate-100 mb-1">Sexo Requerido</label>
-                  <select value={form.gender} onChange={e=>setForm({...form, gender: e.target.value})} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white">
+                  <select value={form.gender} onChange={e => setForm({ ...form, gender: e.target.value })} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white">
                     <option value="Indistinto">Indistinto</option>
                     <option value="Masculino">Masculino</option>
                     <option value="Femenino">Femenino</option>
@@ -576,48 +576,48 @@ const Vacantes = () => {
 
               <div>
                 <label className="block text-sm font-bold text-slate-800 dark:text-slate-100 mb-1">Experiencia Necesaria</label>
-                <textarea value={form.experience} onChange={e=>setForm({...form, experience: e.target.value})} rows="2" placeholder="Ej. 2 años en puestos similares..." className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white resize-none"></textarea>
+                <textarea value={form.experience} onChange={e => setForm({ ...form, experience: e.target.value })} rows="2" placeholder="Ej. 2 años en puestos similares..." className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white resize-none"></textarea>
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-slate-800 dark:text-slate-100 mb-1">Habilidades Duras y Blandas</label>
-                <textarea value={form.skills} onChange={e=>setForm({...form, skills: e.target.value})} rows="2" placeholder="Gestión de proyectos, Trabajo en equipo, Python..." className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white resize-none"></textarea>
+                <textarea value={form.skills} onChange={e => setForm({ ...form, skills: e.target.value })} rows="2" placeholder="Gestión de proyectos, Trabajo en equipo, Python..." className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white resize-none"></textarea>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-slate-800 dark:text-slate-100 mb-1">Dominio de Idiomas</label>
-                  <input type="text" value={form.language} onChange={e=>setForm({...form, language: e.target.value})} placeholder="Ej. Inglés B2" className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" />
+                  <input type="text" value={form.language} onChange={e => setForm({ ...form, language: e.target.value })} placeholder="Ej. Inglés B2" className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-slate-800 dark:text-slate-100 mb-1">Escolaridad</label>
-                  <input type="text" value={form.education} onChange={e=>setForm({...form, education: e.target.value})} placeholder="Ej. Licenciatura en Administración" className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" />
+                  <input type="text" value={form.education} onChange={e => setForm({ ...form, education: e.target.value })} placeholder="Ej. Licenciatura en Administración" className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" />
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-slate-800 dark:text-slate-100 mb-1">Descripción de Actividades</label>
-                <textarea value={form.activities} onChange={e=>setForm({...form, activities: e.target.value})} rows="3" className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white resize-none"></textarea>
+                <textarea value={form.activities} onChange={e => setForm({ ...form, activities: e.target.value })} rows="3" className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white resize-none"></textarea>
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-slate-800 dark:text-slate-100 mb-1">Observaciones Adicionales</label>
-                <textarea value={form.observations} onChange={e=>setForm({...form, observations: e.target.value})} rows="2" placeholder="Cualquier otro detalle relevante..." className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white resize-none"></textarea>
+                <textarea value={form.observations} onChange={e => setForm({ ...form, observations: e.target.value })} rows="2" placeholder="Cualquier otro detalle relevante..." className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white resize-none"></textarea>
               </div>
 
               <div className="flex items-center gap-3 bg-red-50 dark:bg-red-900/10 p-3 rounded-xl border border-red-100 dark:border-red-900/50">
-                <input type="checkbox" id="confidentialCheck" checked={form.confidential} onChange={e=>setForm({...form, confidential: e.target.checked})} className="w-5 h-5 text-red-600 rounded bg-white border-slate-300 cursor-pointer" />
+                <input type="checkbox" id="confidentialCheck" checked={form.confidential} onChange={e => setForm({ ...form, confidential: e.target.checked })} className="w-5 h-5 text-red-600 rounded bg-white border-slate-300 cursor-pointer" />
                 <label htmlFor="confidentialCheck" className="text-sm font-bold text-red-700 dark:text-red-400 cursor-pointer select-none">Vacante Confidencial (Ocultar datos al exterior)</label>
               </div>
 
-                {!isEditing && (
-                  <div>
-                    <label className="block text-sm font-bold text-slate-800 dark:text-slate-100 mb-1">Institución que Publica</label>
-                    <p className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-500 font-semibold border border-slate-300 dark:border-slate-700 rounded-xl cursor-not-allowed">
-                      {user?.institutionName || 'Tu institución (Asignación automática)'}
-                    </p>
-                  </div>
-                )}
+              {!isEditing && (
+                <div>
+                  <label className="block text-sm font-bold text-slate-800 dark:text-slate-100 mb-1">Institución que Publica</label>
+                  <p className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-500 font-semibold border border-slate-300 dark:border-slate-700 rounded-xl cursor-not-allowed">
+                    {user?.institutionName || 'Tu institución (Asignación automática)'}
+                  </p>
+                </div>
+              )}
 
               <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-medium shadow-lg shadow-blue-500/30 transition-all">
                 {isEditing ? 'Actualizar Vacante' : 'Publicar Vacante'}
@@ -630,16 +630,16 @@ const Vacantes = () => {
       {/* Expanded Vacancy Detail Modal */}
       {selectedVacancy && (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/50 backdrop-blur-sm p-4 pt-10 animate-fade-in" onClick={handleCloseVacancyModal}>
-           {/* Stop propagation to avoid closing modal when clicking inside it */}
-           <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden glass-panel flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+          {/* Stop propagation to avoid closing modal when clicking inside it */}
+          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden glass-panel flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-start p-6 border-b border-slate-200 dark:border-slate-800 relative">
-               <button onClick={handleCloseVacancyModal} className="absolute top-4 right-4 p-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-400 hover:text-red-500 transition-all z-10"><X className="w-5 h-5"/></button>
+              <button onClick={handleCloseVacancyModal} className="absolute top-4 right-4 p-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-400 hover:text-red-500 transition-all z-10"><X className="w-5 h-5" /></button>
               <div>
                 <span className="px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 mb-3 inline-block">Inst. {selectedVacancy.institutionId}</span>
                 <h2 className="text-2xl font-bold dark:text-white">{selectedVacancy.role}</h2>
                 <div className="flex items-center text-sm text-slate-500 mt-2 gap-4">
-                  <span className="flex items-center gap-1"><Building className="w-4 h-4"/> {selectedVacancy.institutionName}</span>
-                  <span className="flex items-center gap-1"><Clock className="w-4 h-4"/> {selectedVacancy.date}</span>
+                  <span className="flex items-center gap-1"><Building className="w-4 h-4" /> {selectedVacancy.institutionName}</span>
+                  <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {selectedVacancy.date}</span>
                 </div>
               </div>
               <div className="flex items-center gap-4">
@@ -654,7 +654,7 @@ const Vacantes = () => {
                   </button>
                 )}
                 {user?.role !== 'user' && (
-                  <select 
+                  <select
                     value={selectedVacancy.status}
                     onChange={(e) => handleUpdateVacancyStatus(selectedVacancy.id, e.target.value)}
                     className={`text-sm px-3 py-1.5 rounded-lg font-bold border outline-none cursor-pointer hover:opacity-80 transition-opacity ${selectedVacancy.status === 'Cerrada' ? 'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700' : selectedVacancy.status === 'Pausada' ? 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:border-amber-700' : 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-700'}`}
@@ -666,7 +666,7 @@ const Vacantes = () => {
                 )}
               </div>
             </div>
-            
+
             <div id="vacancy-modal-body" className="p-6 overflow-y-auto space-y-6">
               {error && selectedVacancy && <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-200">{error}</div>}
               {success && selectedVacancy && <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg text-sm border border-emerald-200">{success}</div>}
@@ -707,7 +707,7 @@ const Vacantes = () => {
                   <p className="text-slate-800 dark:text-slate-200 font-medium text-sm">{selectedVacancy.skills || 'No especificado'}</p>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
                   <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Escolaridad</h4>
@@ -735,7 +735,7 @@ const Vacantes = () => {
                   </div>
                 </div>
               )}
-              
+
               {selectedVacancy.confidential && (
                 <div className="bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400 p-3 rounded-lg border border-red-200 dark:border-red-800/50 text-sm font-bold text-center">
                   ⚠️ ESTA VACANTE ES CONFIDENCIAL / PROHIBIDO PUBLICARLA AL EXTERIOR
@@ -747,7 +747,7 @@ const Vacantes = () => {
                 <>
                   <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden glass-panel">
                     <div className="bg-slate-50 dark:bg-slate-800/80 px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-                      <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2"><Send className="w-5 h-5 text-indigo-500"/> Candidatos Postulados ({selectedVacancy.cvCount})</h3>
+                      <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2"><Send className="w-5 h-5 text-indigo-500" /> Candidatos Postulados ({selectedVacancy.cvCount})</h3>
                     </div>
                     <div className="p-6 flex flex-col gap-3">
                       {/* ACEPTADOS */}
@@ -759,8 +759,8 @@ const Vacantes = () => {
                               <div className="flex justify-between items-start">
                                 <div className="font-bold text-slate-900 dark:text-white text-lg flex items-center gap-2">
                                   {cv.name}
-                                  <select 
-                                    value={cv.status || ''} 
+                                  <select
+                                    value={cv.status || ''}
                                     onChange={(e) => handleUpdateCvStatus(cv.id, e.target.value)}
                                     className="text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-full font-black outline-none border cursor-pointer hover:opacity-80 transition-opacity bg-emerald-100 text-emerald-700 border-emerald-200"
                                   >
@@ -771,7 +771,7 @@ const Vacantes = () => {
                                   </select>
                                 </div>
                                 <a href={`${API_URL}/uploads/${cv.document}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-blue-600 text-sm font-semibold hover:underline">
-                                  <FileText className="w-4 h-4"/> Ver CV
+                                  <FileText className="w-4 h-4" /> Ver CV
                                 </a>
                               </div>
                               <div className="text-xs text-slate-500 font-medium flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 mt-2">
@@ -787,35 +787,35 @@ const Vacantes = () => {
                       {allCvs.filter(c => c.targetVacancyId === selectedVacancy.id && c.status !== 'Aceptado').length === 0 && allCvs.filter(c => c.targetVacancyId === selectedVacancy.id && c.status === 'Aceptado').length === 0 ? (
                         <div className="text-center py-6 text-slate-500 bg-slate-50 dark:bg-slate-800/50 rounded-xl">No hay candidatos postulados actualmente.</div>
                       ) : (
-                      <div className="space-y-3">
-                        {allCvs.filter(c => c.targetVacancyId === selectedVacancy.id && c.status !== 'Aceptado').length > 0 && <h4 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1 border-b border-slate-100 dark:border-slate-800 pb-2">Candidatos Activos</h4>}
-                        {allCvs.filter(c => c.targetVacancyId === selectedVacancy.id && c.status !== 'Aceptado').map(cv => (
-                          <div key={cv.id} className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between hover:border-blue-400 transition-colors shadow-sm">
-                            <div>
-                              <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                {cv.name}
-                                <select 
-                                  value={cv.status || ''} 
-                                  onChange={(e) => handleUpdateCvStatus(cv.id, e.target.value)}
-                                  className={`text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-full font-black outline-none border cursor-pointer hover:opacity-80 transition-opacity ${cv.status === 'Aceptado' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-indigo-100 text-indigo-700 border-indigo-200'}`}
-                                >
-                                  <option value="En Proceso">En trámite</option>
-                                  <option value="Aceptado">Aceptado</option>
-                                  <option value="Cartera">Cartera</option>
-                                  <option value="Rechazado">Rechazado</option>
-                                </select>
+                        <div className="space-y-3">
+                          {allCvs.filter(c => c.targetVacancyId === selectedVacancy.id && c.status !== 'Aceptado').length > 0 && <h4 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1 border-b border-slate-100 dark:border-slate-800 pb-2">Candidatos Activos</h4>}
+                          {allCvs.filter(c => c.targetVacancyId === selectedVacancy.id && c.status !== 'Aceptado').map(cv => (
+                            <div key={cv.id} className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between hover:border-blue-400 transition-colors shadow-sm">
+                              <div>
+                                <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                  {cv.name}
+                                  <select
+                                    value={cv.status || ''}
+                                    onChange={(e) => handleUpdateCvStatus(cv.id, e.target.value)}
+                                    className={`text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-full font-black outline-none border cursor-pointer hover:opacity-80 transition-opacity ${cv.status === 'Aceptado' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-indigo-100 text-indigo-700 border-indigo-200'}`}
+                                  >
+                                    <option value="En Proceso">En trámite</option>
+                                    <option value="Aceptado">Aceptado</option>
+                                    <option value="Cartera">Cartera</option>
+                                    <option value="Rechazado">Rechazado</option>
+                                  </select>
+                                </div>
+                                <div className="text-xs text-slate-500 mt-2 flex flex-col sm:flex-row sm:items-center gap-2 font-medium">
+                                  <span className="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md font-mono text-indigo-600 dark:text-indigo-400">Inst: {cv.sourceInstitutionName || cv.sourceInstitutionId || 'Directa'}</span>
+                                  <span className="text-slate-400">Publicado: {new Date(cv.createdAt).toLocaleDateString()}</span>
+                                </div>
                               </div>
-                              <div className="text-xs text-slate-500 mt-2 flex flex-col sm:flex-row sm:items-center gap-2 font-medium">
-                                <span className="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md font-mono text-indigo-600 dark:text-indigo-400">Inst: {cv.sourceInstitutionName || cv.sourceInstitutionId || 'Directa'}</span>
-                                <span className="text-slate-400">Publicado: {new Date(cv.createdAt).toLocaleDateString()}</span>
-                              </div>
+                              <a href={`${API_URL}/uploads/${cv.document}`} target="_blank" rel="noopener noreferrer" className="bg-indigo-50 text-indigo-700 p-2 rounded-lg hover:bg-indigo-100 transition-colors ring-1 ring-inset ring-indigo-200">
+                                <FileText className="w-5 h-5" />
+                              </a>
                             </div>
-                            <a href={`${API_URL}/uploads/${cv.document}`} target="_blank" rel="noopener noreferrer" className="bg-indigo-50 text-indigo-700 p-2 rounded-lg hover:bg-indigo-100 transition-colors ring-1 ring-inset ring-indigo-200">
-                              <FileText className="w-5 h-5"/>
-                            </a>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -826,25 +826,25 @@ const Vacantes = () => {
                       <h4 className="text-lg font-bold text-slate-900 dark:text-white">Postular Candidato</h4>
                       <p className="text-sm text-slate-500 dark:text-slate-400">Sube el CV directamente a esta vacante para que la institución pueda revisarlo en su base de datos.</p>
                     </div>
-                    
+
                     <form onSubmit={handleApplyCv} className="space-y-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Nombre del Candidato</label>
-                          <input type="text" value={applyForm.name} onChange={e=>setApplyForm({...applyForm, name: e.target.value})} className="w-full px-3 py-2 rounded-lg border dark:border-slate-700 dark:bg-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" required />
+                          <input type="text" value={applyForm.name} onChange={e => setApplyForm({ ...applyForm, name: e.target.value })} className="w-full px-3 py-2 rounded-lg border dark:border-slate-700 dark:bg-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" required />
                         </div>
                         <div>
                           <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Correo C.</label>
-                          <input type="email" value={applyForm.email} onChange={e=>setApplyForm({...applyForm, email: e.target.value})} className="w-full px-3 py-2 rounded-lg border dark:border-slate-700 dark:bg-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" required />
+                          <input type="email" value={applyForm.email} onChange={e => setApplyForm({ ...applyForm, email: e.target.value })} className="w-full px-3 py-2 rounded-lg border dark:border-slate-700 dark:bg-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" required />
                         </div>
                       </div>
                       <div>
                         <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Archivo CV (PDF/Word)</label>
-                        <input type="file" onChange={e=>setDocumentFile(e.target.files[0])} accept=".pdf,.doc,.docx" className="w-full px-3 py-2 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 dark:text-white transition-colors cursor-pointer" required />
+                        <input type="file" onChange={e => setDocumentFile(e.target.files[0])} accept=".pdf,.doc,.docx" className="w-full px-3 py-2 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 dark:text-white transition-colors cursor-pointer" required />
                       </div>
-                      <button 
-                        type="submit" 
-                        disabled={!user?.institutionId || submittingCv} 
+                      <button
+                        type="submit"
+                        disabled={!user?.institutionId || submittingCv}
                         className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-medium shadow-lg shadow-blue-500/30 transition-all flex items-center justify-center gap-2"
                       >
                         {submittingCv ? (
@@ -868,13 +868,13 @@ const Vacantes = () => {
                         <h4 className="text-lg font-bold text-slate-900 dark:text-white">Solicitar CV a Otra Institución</h4>
                         <p className="text-sm text-slate-500 dark:text-slate-400">Pide directamente a una institución de la red que revise su base de datos y aporte CVs.</p>
                       </div>
-                      
+
                       <form onSubmit={handleRequestCv} className="space-y-4 bg-indigo-50 dark:bg-indigo-900/10 p-4 rounded-xl border border-indigo-100 dark:border-indigo-800/30">
                         <div>
                           <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Institución Destino</label>
-                          <select 
-                            value={requestCvForm.targetInstitutionId} 
-                            onChange={e=>setRequestCvForm({...requestCvForm, targetInstitutionId: e.target.value})} 
+                          <select
+                            value={requestCvForm.targetInstitutionId}
+                            onChange={e => setRequestCvForm({ ...requestCvForm, targetInstitutionId: e.target.value })}
                             className="w-full px-3 py-2 rounded-lg border border-indigo-200 dark:border-indigo-800 dark:bg-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
                             required
                           >
@@ -886,27 +886,27 @@ const Vacantes = () => {
                         </div>
                         <div>
                           <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Acordar Fecha Límite (SLA)</label>
-                          <input 
-                            type="date" 
-                            value={requestCvForm.dueDate} 
-                            onChange={e=>setRequestCvForm({...requestCvForm, dueDate: e.target.value})} 
-                            className="w-full px-3 py-2 rounded-lg border border-indigo-200 dark:border-indigo-800 dark:bg-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500" 
+                          <input
+                            type="date"
+                            value={requestCvForm.dueDate}
+                            onChange={e => setRequestCvForm({ ...requestCvForm, dueDate: e.target.value })}
+                            className="w-full px-3 py-2 rounded-lg border border-indigo-200 dark:border-indigo-800 dark:bg-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
                             required
                           />
                         </div>
                         <div>
                           <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Mensaje Opcional</label>
-                          <textarea 
-                            value={requestCvForm.description} 
-                            onChange={e=>setRequestCvForm({...requestCvForm, description: e.target.value})} 
+                          <textarea
+                            value={requestCvForm.description}
+                            onChange={e => setRequestCvForm({ ...requestCvForm, description: e.target.value })}
                             placeholder={`Ej. Estamos buscando perfiles para ${selectedVacancy.role}...`}
-                            className="w-full px-3 py-2 rounded-lg border border-indigo-200 dark:border-indigo-800 dark:bg-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 resize-none" 
+                            className="w-full px-3 py-2 rounded-lg border border-indigo-200 dark:border-indigo-800 dark:bg-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                             rows="2"
                           ></textarea>
                         </div>
-                        <button 
-                          type="submit" 
-                          disabled={submittingRequest || (!user?.institutionId && user?.role !== 'admin')} 
+                        <button
+                          type="submit"
+                          disabled={submittingRequest || (!user?.institutionId && user?.role !== 'admin')}
                           className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-6 py-2.5 rounded-xl font-medium shadow-md shadow-indigo-500/20 transition-all flex items-center justify-center gap-2"
                         >
                           {submittingRequest ? (
@@ -925,7 +925,7 @@ const Vacantes = () => {
               )}
 
             </div>
-           </div>
+          </div>
         </div>
       )}
       {/* Rejection Reasons Modal */}
@@ -940,13 +940,13 @@ const Vacantes = () => {
               <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
                 {Object.entries(REJECTION_CODES).map(([code, label]) => (
                   <label key={code} className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors group">
-                    <input 
-                      type="radio" 
-                      name="rejectionCode" 
-                      value={code} 
+                    <input
+                      type="radio"
+                      name="rejectionCode"
+                      value={code}
                       checked={rejectionCode === code}
                       onChange={(e) => setrejectionCode(e.target.value)}
-                      className="mt-1 w-4 h-4 text-red-600 focus:ring-red-500 border-slate-300 rounded-full" 
+                      className="mt-1 w-4 h-4 text-red-600 focus:ring-red-500 border-slate-300 rounded-full"
                     />
                     <div className="flex flex-col">
                       <span className="text-xs font-black text-red-600 dark:text-red-400">Código {code}</span>
@@ -959,7 +959,7 @@ const Vacantes = () => {
               {rejectionCode === 'I' && (
                 <div className="animate-in slide-in-from-top-2 duration-300">
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Especifique motivo</label>
-                  <textarea 
+                  <textarea
                     value={rejectionReasonCustom}
                     onChange={(e) => setRejectionReasonCustom(e.target.value)}
                     className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white text-sm resize-none"
@@ -971,8 +971,8 @@ const Vacantes = () => {
               )}
 
               <div className="pt-2">
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-2xl font-bold shadow-lg shadow-red-500/30 transition-all flex items-center justify-center gap-2"
                 >
                   Confirmar Rechazo y Archivar
