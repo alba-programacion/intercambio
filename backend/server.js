@@ -163,6 +163,27 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/talent-co
         }
         console.log('[MIGRATION] Notification links migration completed.');
       }
+
+      // Migrate legacy SLA Cumplido notifications that point to /gestion-tareas
+      const slaNotifications = await Notification.find({ 
+        message: { $regex: /^¡SLA Cumplido!/ },
+        link: '/gestion-tareas'
+      });
+      if (slaNotifications.length > 0) {
+        console.log(`[MIGRATION] Found ${slaNotifications.length} SLA Cumplido notifications. Fixing links...`);
+        for (const notif of slaNotifications) {
+          const match = notif.message.match(/un CV \((.+?)\) que solicitaste/);
+          if (match) {
+            const cvName = match[1].trim();
+            const cv = await CV.findOne({ name: cvName });
+            if (cv && cv.targetVacancyId) {
+              notif.link = `/vacantes?id=${cv.targetVacancyId}`;
+              await notif.save();
+            }
+          }
+        }
+        console.log('[MIGRATION] SLA notifications links migration completed.');
+      }
     } catch (migErr) {
       console.error('[MIGRATION ERROR] Failed to run notifications link migration:', migErr);
     }
@@ -1209,7 +1230,7 @@ app.post('/api/tasks/:id/fulfill-cv', upload.single('document'), async (req, res
         targetUserEmail: targetEmail,
         message: `¡SLA Cumplido! ${sourceInstitutionId} te ha enviado un CV (${name}) que solicitaste.`,
         type: 'SUCCESS',
-        link: '/gestion-tareas',
+        link: task.targetVacancyId ? `/vacantes?id=${task.targetVacancyId}` : '/gestion-tareas',
         emailSubject: 'SLA Cumplido: CV Recibido',
         emailHtml: `<p>La institución <strong>${sourceInstitutionId}</strong> ha respondido a tu solicitud enviando el CV de <strong>${name}</strong> para la vacante correspondiente.</p><p>Puedes revisarlo en la sección de Gestión de Tareas de la plataforma.</p>`
       });
@@ -1220,7 +1241,7 @@ app.post('/api/tasks/:id/fulfill-cv', upload.single('document'), async (req, res
       targetInstitutionId: sourceInstitutionId,
       message: `Has enviado el CV de ${name} exitosamente a ${targetInstId || 'la institución destino'}.`,
       type: 'INFO',
-      link: '/gestion-tareas'
+      link: task.targetVacancyId ? `/vacantes?id=${task.targetVacancyId}` : '/gestion-tareas'
     });
     console.log(`[NOTIF CREATED] Sender: ${sourceInstitutionId} - ${n2.message}`);
 
