@@ -56,8 +56,17 @@ const GestionTareas = () => {
       ]);
       
       setInstitutions(Array.isArray(instData) ? instData : []);
-      setFines(Array.isArray(finesData) ? finesData : []);
-      setTasks(Array.isArray(tasksData) ? tasksData : []);
+      const finalFines = Array.isArray(finesData) ? finesData : [];
+      const finalTasks = Array.isArray(tasksData) ? tasksData : [];
+      setFines(finalFines);
+      setTasks(finalTasks);
+
+      // Notify Layout component immediately of the pending tasks/fines status
+      const hasPendingTasks = finalTasks.some(t => t.status !== 'COMPLETED');
+      const hasPendingFines = finalFines.some(f => f.status !== 'Pagado');
+      window.dispatchEvent(new CustomEvent('update-tasks-fines', {
+        detail: { hasPendingTasks, hasPendingFines }
+      }));
     } catch (e) {
       console.error('Error fetching data', e);
     } finally {
@@ -243,14 +252,24 @@ const GestionTareas = () => {
           onClick={() => setActiveTab('multas')}
           className={`pb-4 px-2 text-sm font-bold transition-colors relative ${activeTab === 'multas' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
         >
-          Multas
+          <span className="relative inline-flex items-center">
+            Multas
+            {fines.some(f => f.status !== 'Pagado') && (
+              <span className="ml-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+            )}
+          </span>
           {activeTab === 'multas' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></div>}
         </button>
         <button 
           onClick={() => setActiveTab('tareas')}
           className={`pb-4 px-2 text-sm font-bold transition-colors relative ${activeTab === 'tareas' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
         >
-          Tareas
+          <span className="relative inline-flex items-center">
+            Tareas
+            {tasks.some(t => t.status !== 'COMPLETED') && (
+              <span className="ml-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+            )}
+          </span>
           {activeTab === 'tareas' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></div>}
         </button>
       </div>

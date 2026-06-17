@@ -16,6 +16,8 @@ const Layout = ({ children }) => {
 
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [hasPendingTasks, setHasPendingTasks] = useState(false);
+  const [hasPendingFines, setHasPendingFines] = useState(false);
 
   useEffect(() => {
     console.log('Layout: User state changed:', user);
@@ -44,6 +46,54 @@ const Layout = ({ children }) => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 15000); // Poll every 15s
     return () => clearInterval(interval);
+  }, [user]);
+
+  useEffect(() => {
+    if (!user || user.role === 'universidad') return;
+
+    const checkTasksAndFines = async () => {
+      try {
+        const instId = user.institutionId || '';
+        const tasksUrl = user.role === 'admin' ? `${API_URL}/api/tasks` : `${API_URL}/api/tasks?institutionId=${instId}`;
+        const finesUrl = user.role === 'admin' ? `${API_URL}/api/fines` : `${API_URL}/api/fines?institutionId=${instId}`;
+
+        const [tasksRes, finesRes] = await Promise.all([
+          fetch(tasksUrl),
+          fetch(finesUrl)
+        ]);
+
+        if (tasksRes.ok) {
+          const tasksData = await tasksRes.json();
+          const pending = tasksData.some(t => t.status !== 'COMPLETED');
+          setHasPendingTasks(pending);
+        }
+        if (finesRes.ok) {
+          const finesData = await finesRes.json();
+          const pending = finesData.some(f => f.status !== 'Pagado');
+          setHasPendingFines(pending);
+        }
+      } catch (e) {
+        console.error('Failed to check tasks/fines in Layout:', e);
+      }
+    };
+
+    checkTasksAndFines();
+    const interval = setInterval(checkTasksAndFines, 15000); // Poll every 15s
+
+    const handleUpdate = (e) => {
+      if (e && e.detail) {
+        setHasPendingTasks(e.detail.hasPendingTasks);
+        setHasPendingFines(e.detail.hasPendingFines);
+      } else {
+        checkTasksAndFines();
+      }
+    };
+    window.addEventListener('update-tasks-fines', handleUpdate);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('update-tasks-fines', handleUpdate);
+    };
   }, [user]);
 
   const unreadCount = notifications.filter(n => !n.readBy.includes(user?.id)).length;
@@ -109,7 +159,7 @@ const Layout = ({ children }) => {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                `flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative ${
                   isActive
                     ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium'
                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'
@@ -117,7 +167,10 @@ const Layout = ({ children }) => {
               }
             >
               <item.icon className="w-5 h-5" />
-              {item.label}
+              <span>{item.label}</span>
+              {item.to === '/gestion-tareas' && (hasPendingTasks || hasPendingFines) && (
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -220,7 +273,7 @@ const Layout = ({ children }) => {
                                  onClick={() => {
                                    if (isUnread) handleMarkAsRead(n._id);
                                    if (n.link) {
-                                      navigate(n.link);
+                                      navigate(n.link, { state: { notificationMessage: n.message } });
                                       setShowNotifications(false);
                                    }
                                  }}

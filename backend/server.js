@@ -131,6 +131,42 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/talent-co
       ]
     });
     console.log(`🧹 Cleaned up ${deleteResult.deletedCount} completed tasks older than 30 days`);
+    // Migration: Notification links for legacy notifications
+    try {
+      const legacyNotifications = await Notification.find({ link: '/vacantes' });
+      if (legacyNotifications.length > 0) {
+        console.log(`[MIGRATION] Found ${legacyNotifications.length} legacy notifications with link '/vacantes'. Fixing...`);
+        for (const notif of legacyNotifications) {
+          let roleName = null;
+          let match = notif.message.match(/para tu vacante de\s+([^.]+)/i);
+          if (match) {
+            roleName = match[1].trim();
+          } else {
+            match = notif.message.match(/ha publicado la vacante de\s+([^.]+)/i);
+            if (match) {
+              roleName = match[1].trim();
+            } else {
+              match = notif.message.match(/La vacante de\s+(.+?)\s+publicada por/i);
+              if (match) {
+                roleName = match[1].trim();
+              }
+            }
+          }
+
+          if (roleName) {
+            const vacancy = await Vacancy.findOne({ role: { $regex: new RegExp(`^${roleName.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, 'i') } });
+            if (vacancy) {
+              notif.link = `/vacantes?id=${vacancy._id}`;
+              await notif.save();
+            }
+          }
+        }
+        console.log('[MIGRATION] Notification links migration completed.');
+      }
+    } catch (migErr) {
+      console.error('[MIGRATION ERROR] Failed to run notifications link migration:', migErr);
+    }
+
     // Seed Event for Book Fair
     if ((await Event.countDocuments({ title: 'Feria del Libro' })) === 0) {
       await Event.create({
@@ -180,38 +216,79 @@ const getFileData = (file) => {
 app.get('/uploads/:filename', async (req, res) => {
   try {
     const { filename } = req.params;
+    const decodedFilename = decodeURIComponent(filename);
+    const normalizedNFC = decodedFilename.normalize('NFC');
+    const normalizedNFD = decodedFilename.normalize('NFD');
+    const lookupFiles = [decodedFilename, normalizedNFC, normalizedNFD, filename];
 
     // 1. Search in CVs
-    const cv = await CV.findOne({ document: filename });
+    let cv = await CV.findOne({ document: { $in: lookupFiles } });
+    if (!cv) {
+      const match = decodedFilename.match(/^(\d{13})-(.*)/);
+      if (match) {
+        cv = await CV.findOne({ document: { $regex: new RegExp('^' + match[1] + '-') } });
+      }
+    }
+
     if (cv && cv.documentData) {
       const buffer = Buffer.from(cv.documentData, 'base64');
-      res.setHeader('Content-Type', cv.documentMimetype || 'application/pdf');
-      res.setHeader('Content-Disposition', `inline; filename="${cv.document}"`);
+      const safeFilename = cv.document.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const ext = path.extname(cv.document).toLowerCase();
+      let contentType = cv.documentMimetype;
+      if (!contentType) {
+        if (ext === '.pdf') contentType = 'application/pdf';
+        else if (ext === '.docx') contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        else if (ext === '.doc') contentType = 'application/msword';
+        else contentType = 'application/octet-stream';
+      }
+      const isViewable = contentType === 'application/pdf' || contentType.startsWith('image/');
+      const disposition = isViewable ? 'inline' : 'attachment';
+
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `${disposition}; filename="${safeFilename}"`);
       return res.send(buffer);
     }
 
     // 2. Search in Institution logos
-    const inst = await Institution.findOne({ logo: filename });
+    let inst = await Institution.findOne({ logo: { $in: lookupFiles } });
+    if (!inst) {
+      const match = decodedFilename.match(/^(\d{13})-(.*)/);
+      if (match) {
+        inst = await Institution.findOne({ logo: { $regex: new RegExp('^' + match[1] + '-') } });
+      }
+    }
+
     if (inst && inst.logoData) {
       const buffer = Buffer.from(inst.logoData, 'base64');
+      const safeFilename = inst.logo.replace(/[^a-zA-Z0-9.-]/g, '_');
       res.setHeader('Content-Type', inst.logoMimetype || 'image/png');
-      res.setHeader('Content-Disposition', `inline; filename="${inst.logo}"`);
+      res.setHeader('Content-Disposition', `inline; filename="${safeFilename}"`);
       return res.send(buffer);
     }
 
     // 3. Search in Event images
-    const evt = await Event.findOne({ image: filename });
+    let evt = await Event.findOne({ image: { $in: lookupFiles } });
+    if (!evt) {
+      const match = decodedFilename.match(/^(\d{13})-(.*)/);
+      if (match) {
+        evt = await Event.findOne({ image: { $regex: new RegExp('^' + match[1] + '-') } });
+      }
+    }
+
     if (evt && evt.imageData) {
       const buffer = Buffer.from(evt.imageData, 'base64');
+      const safeFilename = evt.image.replace(/[^a-zA-Z0-9.-]/g, '_');
       res.setHeader('Content-Type', evt.imageMimetype || 'image/png');
-      res.setHeader('Content-Disposition', `inline; filename="${evt.image}"`);
+      res.setHeader('Content-Disposition', `inline; filename="${safeFilename}"`);
       return res.send(buffer);
     }
 
     // 4. Fallback to local file system
-    const localPath = path.join(__dirname, 'uploads', filename);
-    if (fs.existsSync(localPath)) {
-      return res.sendFile(localPath);
+    for (const f of lookupFiles) {
+      const localPath = path.join(__dirname, 'uploads', f);
+      if (fs.existsSync(localPath)) {
+        return res.sendFile(localPath);
+      }
     }
 
     res.status(404).send('Archivo no encontrado');
@@ -619,7 +696,7 @@ app.post('/api/vacancies', async (req, res) => {
         targetInstitutionId: 'global', // Global/Admin
         message: `¡Nueva vacante publicada! ${instName} ha publicado la vacante de ${v.role}.`,
         type: 'INFO',
-        link: '/vacantes',
+        link: `/vacantes?id=${v._id}`,
         emailSubject: 'Nueva vacante disponible - TalentCollab',
         emailHtml: `<p>La institución <strong>${instName}</strong> ha publicado una nueva vacante para el puesto de <strong>${v.role}</strong>.</p><p>Ubicación: ${v.location} | Modalidad: ${v.modality}</p>`
       });
@@ -665,7 +742,7 @@ app.patch('/api/vacancies/:id/status', async (req, res) => {
             targetInstitutionId: 'global',
             message,
             type: 'INFO',
-            link: '/vacantes',
+            link: `/vacantes?id=${v._id}`,
             emailSubject,
             emailHtml
           });
@@ -771,7 +848,7 @@ app.post('/api/cvs/vacancy', upload.single('document'), async (req, res) => {
         targetInstitutionId: vacancyInfo.institutionId._id,
         message,
         type: 'SUCCESS',
-        link: '/vacantes',
+        link: `/vacantes?id=${vacancyInfo._id}`,
         emailSubject: 'Nueva postulación a tu vacante',
         emailHtml: `<p>${message}</p><p>Puedes ver los detalles en la plataforma.</p>`
       });

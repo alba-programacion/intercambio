@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../App';
 import { Briefcase, Building, Clock, Users, FileText, X, Plus, Send, CheckCircle } from 'lucide-react';
 import { API_URL } from '../config';
@@ -35,6 +36,7 @@ const formatSalary = (salary) => {
 
 const Vacantes = () => {
   const { user } = useAuth();
+  const location = useLocation();
   const [vacancies, setVacancies] = useState([]);
   const [allCvs, setAllCvs] = useState([]);
   const [institutions, setInstitutions] = useState([]);
@@ -107,6 +109,15 @@ const Vacantes = () => {
     } catch(e) { console.error(e) }
   };
 
+  const handleCloseVacancyModal = () => {
+    setSelectedVacancy(null);
+    const url = new URL(window.location);
+    if (url.searchParams.has('id')) {
+      url.searchParams.delete('id');
+      window.history.replaceState({}, '', url.pathname + url.search);
+    }
+  };
+
   useEffect(() => {
     fetchVacancies();
     if (user) {
@@ -114,6 +125,51 @@ const Vacantes = () => {
       fetchInstitutions(); // all users need institutions list to publish vacancies
     }
   }, [user]);
+
+  useEffect(() => {
+    if (vacancies.length > 0) {
+      const params = new URLSearchParams(location.search);
+      const vacancyId = params.get('id');
+      if (vacancyId) {
+        const found = vacancies.find(v => (v.id === vacancyId || v._id === vacancyId));
+        if (found) {
+          setSelectedVacancy(found);
+          setError('');
+          setSuccess('');
+          return;
+        }
+      }
+
+      // Fallback for legacy notifications: parse role from state passed by notification click
+      const notificationMessage = location.state?.notificationMessage;
+      if (notificationMessage) {
+        let roleName = null;
+        let match = notificationMessage.match(/para tu vacante de\s+([^.]+)/i);
+        if (match) {
+          roleName = match[1].trim();
+        } else {
+          match = notificationMessage.match(/ha publicado la vacante de\s+([^.]+)/i);
+          if (match) {
+            roleName = match[1].trim();
+          } else {
+            match = notificationMessage.match(/La vacante de\s+(.+?)\s+publicada por/i);
+            if (match) {
+              roleName = match[1].trim();
+            }
+          }
+        }
+
+        if (roleName) {
+          const found = vacancies.find(v => v.role?.toLowerCase().trim() === roleName.toLowerCase().trim());
+          if (found) {
+            setSelectedVacancy(found);
+            setError('');
+            setSuccess('');
+          }
+        }
+      }
+    }
+  }, [vacancies, location.search, location.state]);
 
   const handleAddVacancy = async (e) => {
     e.preventDefault();
@@ -171,7 +227,7 @@ const Vacantes = () => {
     setEditingId(v.id || v._id);
     setIsEditing(true);
     setShowAddModal(true);
-    setSelectedVacancy(null); // Close the detail modal
+    handleCloseVacancyModal(); // Close the detail modal
   };
 
   const handleApplyCv = async (e) => {
@@ -296,7 +352,7 @@ const Vacantes = () => {
       const res = await fetch(`${API_URL}/api/vacancies/${vacancyId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Error al eliminar');
       fetchVacancies();
-      if (selectedVacancy && selectedVacancy.id === vacancyId) setSelectedVacancy(null);
+      if (selectedVacancy && selectedVacancy.id === vacancyId) handleCloseVacancyModal();
     } catch(err) { alert(err.message) }
   };
 
@@ -410,7 +466,14 @@ const Vacantes = () => {
           {vacancies.map((v) => (
             <div 
               key={v.id} 
-              onClick={() => { setSelectedVacancy(v); setError(''); setSuccess(''); }}
+              onClick={() => { 
+                setSelectedVacancy(v); 
+                setError(''); 
+                setSuccess(''); 
+                const url = new URL(window.location);
+                url.searchParams.set('id', v.id || v._id);
+                window.history.replaceState({}, '', url.pathname + url.search);
+              }}
               className="glass-panel p-6 rounded-2xl flex flex-col relative overflow-hidden group hover:border-blue-500/50 transition-colors cursor-pointer"
             >
               <div className="flex justify-between items-start mb-4">
@@ -566,11 +629,11 @@ const Vacantes = () => {
 
       {/* Expanded Vacancy Detail Modal */}
       {selectedVacancy && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/50 backdrop-blur-sm p-4 pt-10 animate-fade-in" onClick={() => setSelectedVacancy(null)}>
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/50 backdrop-blur-sm p-4 pt-10 animate-fade-in" onClick={handleCloseVacancyModal}>
            {/* Stop propagation to avoid closing modal when clicking inside it */}
            <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden glass-panel flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-start p-6 border-b border-slate-200 dark:border-slate-800 relative">
-               <button onClick={() => setSelectedVacancy(null)} className="absolute top-4 right-4 p-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-400 hover:text-red-500 transition-all z-10"><X className="w-5 h-5"/></button>
+               <button onClick={handleCloseVacancyModal} className="absolute top-4 right-4 p-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-400 hover:text-red-500 transition-all z-10"><X className="w-5 h-5"/></button>
               <div>
                 <span className="px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 mb-3 inline-block">Inst. {selectedVacancy.institutionId}</span>
                 <h2 className="text-2xl font-bold dark:text-white">{selectedVacancy.role}</h2>
